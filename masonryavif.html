@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="masonryavif.css">
+  <title>avif Masonry Gallery Generator</title>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span style="color: #d34f02;">Z</span><span style="color: #bb4838;">o</span><span style="color: #af6743;">o</span><span style="color: #caa98a;">C</span><span style="color: #c9a16e;">a</span><span style="color: #b79767;">g</span><span style="color: #8e6845;">e</span> avif Masonry Gallery Generator</h1>
+      <p class="subtitle">Ultra-compressed galleries • 2x smaller than jpg</p>
+    </header>
+    <section class="file-selection">
+      <div id="dropZone" class="drop-zone">
+        <div class="drop-content">
+          <h3>Drop Images or Multiple Folders Here or</h3>
+          <div class="button-group">
+            <button id="selectFiles" class="btn-primary btn-small">
+              Browse Images
+            </button>
+            <button id="selectFolder" class="btn-primary btn-small">
+              Browse a Folder
+            </button>
+          </div>
+          <h3>jpg, png, webp, avif, svg</h3>
+        </div>
+      </div>
+      <input type="file" id="fileInput" multiple accept="image/*" style="display:none;">
+      <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
+      <div id="fileCount" class="file-count"></div>
+      <section class="title-option">
+        <label style="color: #f1f1f1; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 20px;">
+          Image titles: 
+          <label style="display: inline-flex; align-items: center; gap: 5px; cursor: pointer;">
+            <input type="radio" name="titleOption" value="1" checked> overlay at bottom
+          </label>
+          <label style="display: inline-flex; align-items: center; gap: 5px; cursor: pointer;">
+            <input type="radio" name="titleOption" value="2"> below images
+          </label>
+        </label>
+      </section>
+      <section class="progress-section" id="progressSection" style="display:none;">
+      </section>
+      
+  
+      
+      <section class="actions">
+        <button id="generateBtn" class="btn-generate" disabled>
+          Generate Masonry Gallery & Download ZIP
+        </button>
+        <button id="cancelBtn" class="btn-cancel" style="display:none;">
+          Cancel
+        </button>
+      </section>
+    </section>
+    <footer class="info">
+      <section class="info-box">
+        <h3>Auto Settings for avif images (Best Compression)</h3>
+        <ul>
+          <li>Quality: 50 (maximum compression)</li>
+          <li>Effort: 8 (slowest, best results)</li>
+          <li>Bit Depth: 8 (standard for web, 16.7M colors, smaller files)</li>
+          <li>All images don't exceed 1280x1280 but stay proportional</li>
+        <li>Be patient - small files take time!</li>
+        <li>This extension prioritizes <strong>file size</strong> over speed. Your images will be 2-3x smaller than jpg usually.</li>
+        <li>Best to keep image galleries under 10000 images even though they are lazy loaded.</li>
+        <li>Tab crash happens usually if there are over 10000 images so don't process more than that.</li>
+        <li>svg files don't need any conversion at all. Extemely fast as it just generates a gallery in html</li>
+        <li>Random Slideshow</li>
+
+        </ul>
+      </section>
+    <section class="info-box">
+        <h3>Gallery Organization</h3>
+        <table class="behavior-table">
+          <thead>
+            <tr>
+              <th>When You Drop</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>3 separate folders</td>
+              <td>3 galleries (folder names)</td>
+            </tr>
+            <tr>
+              <td>1 folder with 3 subfolders</td>
+              <td>3 galleries (subfolder names)</td>
+            </tr>
+            <tr>
+              <td>1 folder with images only</td>
+              <td>1 gallery (folder name)</td>
+            </tr>
+            <tr>
+              <td>Multiple loose images</td>
+              <td>1 gallery ("gallery")</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </footer>
+  </div>
+
+  <script src="jszip.min.js"></script>
+  <script src="masonryavif.js"></script>
+</body>
+</html>

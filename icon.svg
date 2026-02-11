@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="64" height="64" rx="14" fill="#1a1a1a"/>
+  
+  <!-- Masonry gallery rectangles with different colors and sizes -->
+  <!-- Column 1 -->
+  <rect x="6" y="8" width="11.5" height="18" rx="2" fill="#667eea"/>
+  <rect x="6" y="28" width="11.5" height="12" rx="2" fill="#00ff26"/>
+  <rect x="6" y="42" width="11.5" height="15" rx="2" fill="#ff6b6b"/>
+  
+  <!-- Column 2 -->
+  <rect x="21" y="8" width="11.5" height="15" rx="2" fill="#ffd93d"/>
+  <rect x="21" y="25" width="11.5" height="20" rx="2" fill="#6bcf7f"/>
+  <rect x="21" y="47" width="11.5" height="10" rx="2" fill="#a78bfa"/>
+  
+  <!-- Column 3 -->
+  <rect x="36" y="8" width="11.5" height="12" rx="2" fill="#fb923c"/>
+  <rect x="36" y="22" width="11.5" height="17" rx="2" fill="#b32dd4"/>
+  <rect x="36" y="41" width="11.5" height="16" rx="2" fill="#f472b6"/>
+  
+  <!-- Column 4 -->
+  <rect x="51" y="8" width="11.5" height="14" rx="2" fill="#22d3ee"/>
+  <rect x="51" y="24" width="11.5" height="11" rx="2" fill="#f59e0b"/>
+  <rect x="51" y="37" width="11.5" height="20" rx="2" fill="#ec4899"/>
+</svg>

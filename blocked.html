@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Site Blocked</title>
+    <style>
+        body {
+            background: #1e1e1e;
+            color: #aaa8a8;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .blocked-icon {
+            font-size: 120px;
+            margin-bottom: 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        h1 {
+            font-size: 36px;
+            margin: 0 0 10px 0;
+            color: #a82f2f;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 24px;
+            margin: 0 0 10px 0;
+            color: #2f7ca8;
+            text-align: center;
+        }
+        
+        .duration {
+            font-size: 32px;
+            color: #b7632f;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .achievement {
+            font-size: 24px;
+            color: #7831d4;
+            margin-bottom: 30px;
+            font-weight: 500;
+            text-align: center;
+            font-style: italic;
+        }
+        
+        .url {
+            color: #a0a0a0;
+            font-size: 16px;
+            margin-bottom: 40px;
+            word-break: break-all;
+            max-width: 800px;
+            text-align: center;
+        }
+        
+        .unblock-btn {
+            padding: 20px 40px;
+            background: #38846E;
+            border: none;
+            border-radius: 8px;
+            color: #a0a0a0;
+            font-size: 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .unblock-btn:hover {
+            background: #2E894C;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="blocked-icon">🚫</div>
+    <h1>Site Has Been Blocked</h1>
+    <h2>
+            by <span style="color: #d34f02;">Z</span><span style="color: #bb4838;">o</span><span style="color: #af6743;">o</span><span style="color: #caa98a;">C</span><span style="color: #c9a16e;">a</span><span style="color: #b79767;">g</span><span style="color: #8e6845;">e</span>
+                           <span style="color: #d34f02;">T</span><span style="color: #96421d;">i</span><span style="color: #c06530;">m</span><span style="color: #da8a56;">e</span>
+                           <span style="color: #8B520E;">W</span><span style="color: #AF7F1D;">a</span><span style="color: #CC781A;">s</span><span style="color: #EC9413;">t</span><span style="color: #EBAA2D;">e</span><span style="color: #F3BB59;">r</span> 
+                           <span style="color: #D94E10;">A</span><span style="color: #FF6E33;">r</span><span style="color: #FF884A;">r</span><span style="color: #FFB770;">a</span><span style="color: #FFD9A1;">y</span>
+    </h2>
+    <div class="duration" id="duration">for ? days</div>
+    <div class="url" id="currentUrl"></div>
+    <div class="achievement" id="achievement"></div>
+    <button class="unblock-btn" id="unblockBtn">Unblock Site</button>
+    
+    <script src="blocked.js"></script>
+</body>
+</html>

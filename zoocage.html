@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZooCage Code Snippets</title>
+<link rel="stylesheet" href="zoocage.css">
+<link rel="stylesheet" href="themesdark/gradient-dark.min.css" id="themeStylesheet">
+</head>
+<body>
+    <header style="flex-direction: column; align-items: stretch;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 2rem;">
+                <h3><span style="color: #d34f02;">Z</span><span style="color: #bb4838;">o</span><span style="color: #af6743;">o</span><span style="color: #caa98a;">C</span><span style="color: #c9a16e;">a</span><span style="color: #b79767;">g</span><span style="color: #8e6845;">e</span> <span style="color: #d34f02;">C</span><span style="color: #bb4838;">o</span><span style="color: #af6743;">d</span><span style="color: #caa98a;">e</span> <span style="color: #c9a16e;">S</span><span style="color: #b79767;">n</span><span style="color: #8e6845;">i</span><span style="color: #d34f02;">p</span><span style="color: #bb4838;">p</span><span style="color: #af6743;">e</span><span style="color: #caa98a;">t</span><span style="color: #c9a16e;">t</span><span style="color: #b79767;">s</span></h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <button class="danger" id="deleteSelectedBtn" style="display: none;">Delete Selected</button>
+                    <button class="secondary" id="compareSelectedBtn" style="display: none;">Compare Selected (2)</button>
+                    <div style="display: none; align-items: center; gap: 0.5rem;" id="addTagContainer">
+                        <label style="color: #4ec9b0; font-size: 0.9rem; white-space: nowrap;">Add Tag:</label>
+                        <input type="text" id="addTagInput" placeholder="#tag" style="background: #3c3c3c; border: 1px solid #3e3e42; color: #d4d4d4; padding: 0.35rem 0.5rem; border-radius: 4px; font-size: 0.85rem; width: 120px;">
+                        <button class="secondary" id="addTagBtn" style="padding: 0.35rem 0.75rem; font-size: 0.85rem;">Apply</button>
+                    </div>
+                </div>
+            </div>
+            <div class="controls">
+                <div class="dropdown" tabindex="0" id="themeSelectorDark">
+                    <div class="selected">Dark Themes</div>
+                    <div class="options"></div>
+                </div>
+                <div class="dropdown" tabindex="0" id="themeSelectorLight">
+                    <div class="selected">Light Themes</div>
+                    <div class="options"></div>
+                </div>
+                <div class="dropdown" tabindex="0" id="languageSelector">
+                    <div class="selected">Javascript</div>
+                    <div class="options"></div>
+                </div>
+                <button id="newSnippet" title="Ctrl+n">+ New Snippet</button>
+            </div>
+        </div>
+        <div class="controls">
+            <div class="select-all-container">
+                <input type="checkbox" id="selectAllCheckbox">
+            </div>
+             <button class="secondary" id="sortAlphaBtn" title="Sort alphabetically A→Z">A-Z</button>
+             <button class="secondary" id="sortSizeBtn" title="Sort by file size ↓">Size</button>
+             <button class="secondary" id="sortDateBtn" title="Sort by date ↓">Date</button>
+             <button class="secondary" id="markdownSettingsBtn" title="Markdown Settings">Markdown ⚙️</button>
+            <button class="secondary" id="toggleSplitView" title="Toggle split view">⬌</button>
+            <button class="secondary" id="viewMarkdownBtn" style="display: none;">View as Markdown</button>
+            <button class="secondary" id="copyCode">Copy</button>
+            <button class="secondary" id="deleteSnippet">Delete</button>
+            <button class="secondary" id="toggleWrap">Unwrap</button>
+            <button id="saveSnippet" title="Ctrl+s / ⌘s">Save</button>
+            <button class="saveSnippet" id="saveNoImagesBtnTop" style="display: none;">Save ❌🌄</button>
+            <button class="saveSnippet" id="saveHtmlBtnTop" style="display: none;">Save html</button>
+            <button class="secondary scroll-btn" id="scrollToNotes">↓ Notes</button>
+            <div id="toggleMarkdownHighlights" style="display: inline-block; margin-left: 1px; font-size: 20px; cursor: pointer; user-select: none; opacity: 1; transition: opacity 0.2s;" title="Toggle Highlights">
+                🟧
+            </div>
+        </div>
+    </header>
+<main>
+    <aside class="sidebar">
+        <div class="search-box">
+            <div style="position: relative;">
+                <textarea id="searchInput" placeholder="Fuzzy search snippets..." rows="2"></textarea>
+                <button class="input-clear-btn-outside" id="clearSearch" style="display: none;">×</button>
+            </div>
+            <div class="search-options">
+                <label class="search-mode-label">
+                    <input type="radio" name="search-mode" value="and" checked> AND
+                </label>
+                <label class="search-mode-label">
+                    <input type="radio" name="search-mode" value="or"> OR
+                </label>
+                <div class="search-hint">"exact phrase" otherterm</div>
+            </div>
+                <div style="position: relative; margin-bottom: 0.5rem;">
+                    <input type="text" id="excludeInput" placeholder="Exclude terms...">
+                    <button class="input-clear-btn-outside" id="clearExclude" style="display: none;">×</button>
+                </div>
+                <div style="position: relative;">
+                    <input type="text" id="filterInput" placeholder="Filter by title and/or #tag">
+                    <button class="input-clear-btn-outside" id="clearFilter" style="display: none;">×</button>
+                </div>
+        </div>
+        </div>
+        <div id="indexingIndicator" style="display: none;"></div>
+        <div class="snippet-list" id="snippetList"></div>
+    </aside>
+    <div class="content-area">
+        <div class="empty-state" id="emptyState">
+            <div style="text-align: left; max-width: 850px; overflow-y: auto; margin: 0 auto;">
+                <ul style="line-height: 1.8; margin-bottom: 2rem;">
+                    <li><span style="color: #00b9e5;">Asciidoc</span>, <span style="color: #38d430;">Awk</span>, <span style="color: #e3e82b;">Bash</span>, <span style="color: #ffab4d;">C</span>, <span style="color: #ff3f3f;">Cmake</span>, <span style="color: #ef2bc1;">C++</span>, <span style="color: #bc13fe;">C#</span>, <span style="color: #00b9e5;">CSS</span>, <span style="color: #38d430;">Dart</span>, <span style="color: #e3e82b;">Diff</span>, <span style="color: #ffab4d;">Go</span>, <span style="color: #ff3f3f;">ini</span>, <span style="color: #ef2bc1;">Java</span>, <span style="color: #bc13fe;">Javascript</span>, <span style="color: #00b9e5;">JSON</span>, <span style="color: #38d430;">Kotlin</span>, <span style="color: #e3e82b;">Lua</span>, <span style="color: #ffab4d;">Makefile</span>, <span style="color: #ff3f3f;">Markdown</span>, <span style="color: #ef2bc1;">Objectivec</span>, <span style="color: #bc13fe;">Perl</span>, <span style="color: #00b9e5;">PHP</span>, <span style="color: #38d430;">Plaintext</span>, <span style="color: #e3e82b;">Python</span>, <span style="color: #ffab4d;">Ruby</span>, <span style="color: #ff3f3f;">Rust</span>, <span style="color: #ef2bc1;">Shell</span>, <span style="color: #bc13fe;">SQL</span>, <span style="color: #00b9e5;">Swift</span>, <span style="color: #38d430;">Typescript</span>, <span style="color: #e3e82b;">Wasm</span>, <span style="color: #ffab4d;">XML</span>, <span style="color: #ff3f3f;">Yaml</span></li>
+                    <li><span style="color: #00b9e5;">Fuzzy and AND, OR, NOT search:</span></span> No bm25 sorted relevant results but still relevant results and extremely fast index build  <a href="https://github.com/nextapps-de/flexsearch" target="_blank" style="color: #ef2bc1; text-decoration: none;">flexsearch.js</a></li>
+                    <li><span style="color: #38d430;">Fast and Local:</span></span> All data stored locally in `browser.storage.local` (IndexedDB)</li>
+                    <li><span style="color: #e3e82b;">Hash Cached index in memory:</span></span> Only rebuilds when searching and snippets are added/modified/deleted</li>
+                    <li><span style="color: #ffab4d;">Prefix search:</span> Finds partial matches</li>
+                    <li><span style="color: #ff3f3f;">Add tags:</span></span> #tags to Title section and use Title filter</li>
+                    <li><span style="color: #ef2bc1;">Notes:</span></span> Add context, examples, or documentation</li>
+                    <li><span style="color: #bc13fe;">Import/Export:</span></span> Backup and share your snippets as JSON, detects duplicates, zip</li>
+                    <li><span style="color: #00b9e5;">Batch Import/Export Workspaces:</span></span> Export all Workspaces, Import Source code (markdown, lua, etc.) in zip</li>
+                    <li><span style="color: #38d430;">CSV:</span></span> View table, cell editing, column sorting, columns/rows copy/delete, delimiters <span style="color: #38d430;">, ; | : tab</span> <a href="http://papaparse.com/" target="_blank" style="color: #ffab4d; text-decoration: none; ">papaparse.com</a></li>
+                    <li><span style="color: #e3e82b;">VTT/SRT support:</span></span> Syntax highlighting for subtitle files</li>
+                    <li><span style="color: #ffab4d;">Auto-detection:</span></span> Language is detected automatically from code</li>
+                    <li><span style="color: #ff3f3f;">Syntax highlighting:</span></span> <a href="https://highlightjs.org/" target="_blank" style="color: #38d430; text-decoration: none; ">highlightjs.org</a> 33 languages with 50+ color themes</li>
+                    <li><span style="color: #ef2bc1;">Tile Case:</span></span> people of the web <span style="color: #ffab4d;">--></span><span style="color: #ff3f3f;"> P</span>eople of the <span style="color: #ff3f3f;">W</span>eb</li>
+                </ul>
+            </div>
+        </div>
+        <div class="editor-container" id="editorContainer">
+            <div class="form-group">
+                <label>Title</label>
+                <div class="input-with-clear">
+                    <input type="text" id="snippetTitle" placeholder="First line of code">
+                    <button class="clear-btn" id="clearTitle" title="Clear title">×</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <label>Code</label>
+                    <button class="clear-btn" id="pasteCode" title="Ctrl+v / ⌘v">Paste</button>
+                    <button class="clear-btn" id="clearCode" title="Clear code">Clear</button>
+                    <button class="clear-btn" id="toggleFilePosition" title="Toggle between start and end of file">↓File</button>
+                    <button class="secondary" id="titleCase" title="Title Case (works on selection, click again to undo)">Title Case</button>
+                    <button class="secondary" id="viewCsvBtn" style="display: none;">csv</button>
+                    <button id="toggleSyncScroll" class="secondary" title="Toggle synchronized scrolling" style="display: none;">Sync</button>
+                </div>
+                <div class="code-input-wrapper">
+                    <textarea id="snippetCode" placeholder="Paste your code here..." spellcheck="false"></textarea>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="preview-header">
+                    <label>Preview</label>
+                    <div class="preview-actions">
+                        <button class="secondary scroll-btn" id="scrollToNotesFromPreview">↓ Notes</button>
+                    </div>
+                </div>
+                <div class="code-preview" id="codePreview"><em style="color: #858585;">Preview will appear here...</em></div>
+            </div>
+            <div class="notes-section" id="notesSection">
+                <div class="notes-header">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <h3>Notes</h3>
+                        <button class="clear-btn" id="copyNotes">Copy</button>
+                        <button class="clear-btn" id="pasteNotes" title="Ctrl+v / ⌘v">Paste</button>
+                        <button class="clear-btn" id="clearNotes" title="Clear notes">Clear</button>
+                    </div>
+                    <div class="notes-actions">
+                        <button class="secondary scroll-btn" id="scrollToTop">↑ Top</button>
+                    </div>
+                </div>
+                <textarea id="snippetNotes" placeholder="Add notes, output examples, or change logs..."></textarea>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div id="markdownSettingsModal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        
+        <div class="settings-section">
+            <label class="setting-option">
+                <input type="checkbox" id="includeTitle" checked>
+                <span>Include Title</span>
+            </label>
+            <label class="setting-option">
+                <input type="checkbox" id="includeUrl" checked>
+                <span>Include URL</span>
+            </label>
+            <label class="setting-option">
+                <input type="checkbox" id="includeAuthor" checked>
+                <span>Include Author</span>
+            </label>
+            <label class="setting-option">
+                <input type="checkbox" id="includeDate" checked>
+                <span>Include Date</span>
+            </label>
+        </div>
+        
+        <div class="settings-section">
+            <label class="setting-option">
+                <input type="checkbox" id="preserveTableLinebreaks">
+                <span>Preserve line breaks in table cells (uses &lt;br&gt; tags)</span>
+            </label>
+        </div>
+        
+        <div class="settings-section">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Markdown Font</label>
+            <select id="markdownFontSelect" style="width: 100%; padding: 0.5rem; border: 1px solid #3e3e42; border-radius: 4px; background: #3c3c3c; color: #d4d4d4; font-size: 0.9rem;">
+                <option value="0xProto">0xProto (Default)</option>
+                <option value="Consolas">Consolas</option>
+                <option value="Monaco">Monaco</option>
+                <option value="Courier New">Courier New</option>
+            </select>
+        </div>
+        
+        <div class="modal-actions">
+            <button id="saveMarkdownSettings">Save Settings</button>
+            <button class="secondary" id="closeMarkdownSettings">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script src="highlight.min.js"></script>
+<script src="languages/asciidoc.min.js"></script>
+<script src="languages/awk.min.js"></script>
+<script src="languages/bash.min.js"></script>
+<script src="languages/c.min.js"></script>
+<script src="languages/cmake.min.js"></script>
+<script src="languages/cpp.min.js"></script>
+<script src="languages/csharp.min.js"></script>
+<script src="languages/css.min.js"></script>
+<script src="languages/dart.min.js"></script>
+<script src="languages/diff.min.js"></script>
+<script src="languages/go.min.js"></script>
+<script src="languages/ini.min.js"></script>
+<script src="languages/java.min.js"></script>
+<script src="languages/javascript.min.js"></script>
+<script src="languages/json.min.js"></script>
+<script src="languages/kotlin.min.js"></script>
+<script src="languages/lua.min.js"></script>
+<script src="languages/makefile.min.js"></script>
+<script src="languages/markdown.min.js"></script>
+<script src="languages/objectivec.min.js"></script>
+<script src="languages/perl.min.js"></script>
+<script src="languages/php.min.js"></script>
+<script src="languages/plaintext.min.js"></script>
+<script src="languages/python.min.js"></script>
+<script src="languages/ruby.min.js"></script>
+<script src="languages/rust.min.js"></script>
+<script src="languages/shell.min.js"></script>
+<script src="languages/sql.min.js"></script>
+<script src="languages/swift.min.js"></script>
+<script src="languages/typescript.min.js"></script>
+<script src="languages/wasm.min.js"></script>
+<script src="languages/xml.min.js"></script>
+<script src="languages/yaml.min.js"></script>
+<script src="flexsearch.es5.min.js"></script>
+<script src="jszip.min.js"></script>
+<script src="papaparse.min.js"></script>
+<script src="jszip.min.js"></script>
+<script src="diff.min.js"></script>
+<script src="markdown-it.min.js"></script>
+<script src="fflate.min.js"></script>
+<script src="zoocage.js"></script>
+
+<input type="file" id="importFileWorkspaces" accept=".zip" style="display: none;">
+<input type="file" id="importSourceFile" accept=".zip" style="display: none;">
+
+</body>
+</html>

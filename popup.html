@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ZooCage Time Waster Array</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <div id="top"></div>
+            <div id="importJsonSection" style="display: none;">
+                <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: var(--accent-color); margin-bottom: 12px;">Import Tracker Data</h3>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="selectJsonFile" style="padding: 8px 16px;">Select JSON File</button>
+                        <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
+                        <span id="jsonFileName" style="color: var(--text-secondary); font-size: 13px;">No file selected.</span>
+                    </div>
+                    <button id="importJsonBtn" style="padding: 8px 16px; margin-top: 12px; background: var(--accent-color); color: white;">Import</button>
+                    <div id="importJsonStatus" style="margin-top: 8px; font-size: 13px;"></div>
+                </div>
+            </div>
+        <div class="header">
+            <div class="header-left">
+                <h1>
+                    <span style="color: #d34f02;">Z</span><span style="color: #bb4838;">o</span><span style="color: #af6743;">o</span><span style="color: #caa98a;">C</span><span style="color: #c9a16e;">a</span><span style="color: #b79767;">g</span><span style="color: #8e6845;">e</span>
+                    <span style="color: #d34f02;">T</span><span style="color: #96421d;">i</span><span style="color: #c06530;">m</span><span style="color: #da8a56;">e</span>
+                    <span style="color: #8B520E;">W</span><span style="color: #AF7F1D;">a</span><span style="color: #CC781A;">s</span><span style="color: #EC9413;">t</span><span style="color: #EBAA2D;">e</span><span style="color: #F3BB59;">r</span> 
+                    <span style="color: #D94E10;">A</span><span style="color: #FF6E33;">r</span><span style="color: #FF884A;">r</span><span style="color: #FFB770;">a</span><span style="color: #FFD9A1;">y</span>
+                </h1>
+                <div class="nav-links">
+                    <a href="#browseSection" class="nav-link">BrowsingTime</a>
+                    <span class="nav-separator">&#x2007;</span>
+                    <a href="#whitelistSection" class="nav-link" title="Whitelist">Whitelist</a>
+                    <span class="nav-separator">&#x2007;</span>
+                    <a href="#blocklistaddSection" class="nav-link" title="Block a Site without visiting">🚫</a>
+                    <span class="nav-separator">&#x2007;</span>
+                    <a href="#listsSection" class="nav-link">Lists</a>
+                    <span class="nav-separator">&#x2007;</span>
+                    <a href="#sinceSection" class="nav-link">Since</a>
+                    <span class="nav-separator">&#x2007;</span>
+                    <a href="#calcSection" class="nav-link">Calculator</a>
+                    <span class="nav-separator">&#x2007;</span>
+                    <a href="#importexportSection" class="nav-link">Export</a>
+                    <span class="nav-separator">&#x2007;</span>
+                    <a href="#helpSection" class="nav-link" title="Help">Help</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div id="collapsibleHighlightHeader">
+                <label><span class="section-label">Multi-Term Page Highlighter</span>
+                    <span class="help-example">&quot;exact&quot;</span> or <span class="help-example">&quot;exact phrase&quot;</span> <span style="color: var(--text-secondary); font-size: 0.65rem; margin-left: 6px;">palette #<span id="highlightPaletteNumber">1</span></span>
+                </label>
+            </div>
+            <div id="highlightControlsRow" style="display: flex; gap: 3px; margin-bottom: 0.5rem;">
+                <input type="text" id="highlightTermsInput" placeholder="Enter search terms (space separated)...">
+                <button id="addHighlightBtn" class="blocking-icon-btn" title="Highlight terms">🖍️</button>
+                <button id="clearHighlightsBtn" class="blocking-icon-btn" title="Clear all terms">🗑️</button>
+                <button id="diacriticsToggle" class="highlight-toggle-mini" title="Toggle diacritics matching"><span id="diacriticsToggleText">üb</span></button>
+                <button id="toggleCJK" class="highlight-toggle-mini" title="CJK(Chinese, Japanese, Korean, Arabic) or show partial term only mode">&#x4E2D;&#x65E5;&#x97D3;</button>
+                <button id="highlightColorsBtn" class="blocking-icon-btn" title="Highlight Colors">🟫</button>
+                </button>
+                <button id="highlightToggle" class="highlight-toggle-mini" title="Toggle highlights ON/OFF"><span id="highlightToggleText">OFF</span></button>
+                <span id="collapseToggle" class="blocking-icon-btn" title="Folding Fan">🪭</span>
+            </div>
+            <div id="highlightTermsList" style="display: flex; flex-wrap: wrap; gap: 0.25rem; min-height: 0px;"></div>
+        </div>
+        
+        <div id="collapsibleSettings">
+
+        <div id="darkModeSection" class="section">
+            <h3>
+                <span class="section-label">🌙 Dark Mode</span>
+                <button id="darkModeToggle" class="global-toggle-mini" title="Global Dark Mode">
+                    <span id="darkModeToggleText">OFF</span>
+                </button>
+                <label class="blocking-option-inline" style="margin-left: 6px;">
+                    <input type="checkbox" id="preserveImages">
+                    <span title="Preserve Images">images</span>
+                </label>
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="invertMaybe">
+                    <span title="Attempt to Auto-detect and preserve already dark elements">Auto Dark Elements</span>
+                </label>
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="spaFix">
+                    <span title="Retains 🌙 on sites like github">Single Page App</span>
+                </label>
+            </h3>
+        </div>
+
+        <div id="blockingSection" class="section">
+            <h3>
+                <span class="section-label">🧪 Blocking</span>
+                <button id="globalToggle" class="global-toggle-mini" title="Global Content Blocking">
+                    <span id="globalToggleText">OFF</span>
+                </button>
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="blockImages">
+                    <span title="Block Images saving bandwidth">images</span>
+                </label>
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="blockSVG">
+                    <span title="Hide SVG Elements">svg</span>
+                </label>
+                <button id="zapBtn" class="blocking-icon-btn" title="Zap Elements Forever">⚡</button>
+                <button id="clearZapBtn" class="blocking-icon-btn" title="Clear all Zaps for this site">🗑️</button>
+                <button id="blurBtn" class="blocking-icon-btn" title="Blur Elements Forever">💧</button>
+                <button id="clearBlurBtn" class="blocking-icon-btn" title="Clear all Blurs for this site">🗑️</button>
+                <button id="invertBtn" title="Invert CSS Colors Forever">🌗</button>
+                <button id="clearInvertBtn" class="blocking-icon-btn" title="Clear all Invert CSS for this site">🗑️</button>
+                <button id="invertParentBtn" title="Invert CSS Colors Forever Parent Only">🌒</button>
+                <button id="clearInvertParentBtn" class="blocking-icon-btn" title="Clear all Invert CSS Parent for this site">🗑️</button>
+            </h3>
+        </div>
+        
+        <div id="siteControlsSection" class="section">
+            <div class="site-controls-grid">
+                <div class="control-column">
+                    <select id="blockSiteSelect"></select>
+                </div>
+                <div class="control-column">
+                    <div class="toggle-group">
+                        <button id="siteDarkEnable" class="global-toggle-onoff" style="display: none;">
+                            <span id="siteDarkEnableText">OFF</span>
+                        </button>
+                        <button id="siteDarkToggle" class="blocking-icon-btn" title="Dark Mode">
+                            <span id="siteDarkToggleIcon">🌙</span>
+                        </button>
+                        <button id="siteBlockToggle" class="blocking-icon-btn" title="Content Blocking">
+                            <span id="siteBlockToggleIcon">🧪</span>
+                        </button>
+                        <button id="toggleBlurSite" class="blocking-icon-btn" title="Blur/Unblur images/videos">💦</button>
+                        <button id="toggleSiteInBlockList" class="blocking-icon-btn" title="Block/Unblock site">🚫</button>
+                        <button id="rightClickToggle" class="blocking-icon-btn" title="Allow Right-click">
+                            <span id="rightClickToggleIcon">🖱️</span>
+                        </button>
+                        <button id="paletteBtn" title="Color Palette Generator">🎨</button>
+                        <button id="joinphotosBtn" title="Join Images">🔗</button>
+                        <button id="avifGalleryBtn" title="Masonry Gallery">🌅</button>
+                        <button id="codeSnippetsBtn" title="Code Snippets">📝</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="blurControlSection" class="section" style="display: none;">
+            <div class="setting-group" style="margin-bottom: 0.25rem;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex-wrap: nowrap;">
+                    <span class="help-label" style="white-space: nowrap;">Blur Images <span id="imageBlurValue" style="color: #ffffff;">8</span><span style="color: #ffffff;">px</span></span>
+                    <input type="range" id="imageBlurSlider" min="0" max="30" value="8" step="1" style="width: 150px;">
+                    
+                    <button id="toggleInvertBlur" class="global-toggle-bw" style="margin: 0; padding: 0.35rem 0.5rem; font-size: 0.9rem; flex-shrink: 0; line-height: 1;" title="Toggle Color Inversion">
+                        🩻
+                    </button>
+                    
+                    <span class="help-label" style="white-space: nowrap;">Blur Videos <span id="videoBlurValue" style="color: #ffffff;">20</span><span style="color: #ffffff;">px</span></span>
+                    <input type="range" id="videoBlurSlider" min="0" max="50" value="20" step="1" style="width: 150px;">
+                </div>
+            </div>
+        </div>
+
+        <div id="maxTabsSection" class="section" style="margin-top: 0.25rem;">
+            <h3>
+                <span class="section-label">MaxTabs</span>
+                <button id="maxTabsToggle" class="global-toggle-mini" title="Enable/disable max tabs limit">
+                    <span id="maxTabsToggleText">OFF</span>
+                </button>
+                <button id="currentTabCount" class="tab-count-display" title="Currently loaded tabs">0</button>
+                <button class="tab-limit-btn" data-limit="1">1</button>
+                <button class="tab-limit-btn" data-limit="2">2</button>
+                <button class="tab-limit-btn active" data-limit="3">3</button>
+                <button class="tab-limit-btn" data-limit="4">4</button>
+                <button class="tab-limit-btn" data-limit="5">5</button>
+                <button class="tab-limit-btn" data-limit="5">6</button>
+                <button id="editTextBtn" class="blocking-icon-btn" title="Edit Site Text">✏️</button>
+                <button id="hoverZoomToggle" class="blocking-icon-btn">🔎</button>
+                <button id="pinCalcBtn" class="pin-calc-btn top-page" title="Open in a New Tab">📍</button>
+                <button id="grayscaleToggle" class="blocking-icon-btn" title="Grayscale Mode">👓</button>
+                <button id="refreshBtn" class="blocking-icon-btn" title="Refresh page">🌀</button>
+            </h3>
+        </div>
+
+        <div id="youtubeSection" class="section">
+            <h3>
+                <span class="section-label blocking-icon-btn video-icon" title="YouTube Default Quality">📺</span>
+                <select id="defaultQuality">
+                    <option value="auto">Auto</option>
+                    <option value="144p">144p</option>
+                    <option value="240p">240p</option>
+                    <option value="360p" selected>360p</option>
+                    <option value="480p">480p</option>
+                    <option value="720p">720p</option>
+                    <option value="1080p">1080p</option>
+                    <option value="1440p">1440p</option>
+                    <option value="2160p">2160p</option>
+                </select>
+                <span class="nav-separator">&#x2007;</span>
+                <span class="section-label">Hide: </span>
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="hideRecommended">
+                    <span title="Hide 📺 Recommended Videos on Sidebar">Recommended</span>
+                </label>
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="hideShorts">
+                    <span title="Hide 📺 Shorts">Shorts</span>
+                </label>
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="hideComments">
+                    <span title="Hide 📺 Comments">Comments</span>
+                </label>
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="hideExplore">
+                    <span title="Hide 📺 Explore">Explore</span>
+                </label>
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="hideMoreFromYoutube">
+                    <span title="Hide 📺 More from YouTube">More</span>
+                </label>
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="hideEndCards">
+                    <span title="Hide 📺 Recommended End Cards">End Cards</span>
+                </label>
+                <span class="nav-separator">&#x2007;</span>
+                <span class="section-label">Disable: </span>
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="disableAutoplay">
+                    <span title="Disable 📺 Autoplay"> Autoplay</span>
+                </label>
+            </h3>
+        </div>
+
+        <div class="setting-group">
+            <label>
+                <span class="help-label">Clip as Markdown:</span>
+            </label>
+            <select id="markdownImageMode">
+                <option value="none">Remove Images</option>
+                <option value="avif">Embed as AVIF (500px max)</option>
+            </select>
+            <select id="avifColorMode" style="margin-left: 10px; display: none;">
+                <option value="color">Color</option>
+                <option value="grayscale">Grayscale</option>
+            </select>
+        </div>
+
+        <div class="controls">
+            <select id="periodSelect">
+                <option value="today" selected>Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="7">Last 7 days</option>
+                <option value="14">Last 14 days</option>
+                <option value="21">Last 21 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="60">Last 60 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="120">Last 120 days</option>
+                <option value="150">Last 150 days</option>
+                <option value="180">Last 180 days</option>
+                <option value="365">Last 365 days</option>
+                <option value="730">Last 730 days</option>
+            </select>
+            
+            <span id="periodAverage" class="period-average"></span>
+        </div>
+
+        <div id="mediaSection" class="section">
+            <h2>
+                <span class="section-label">Media Playback</span>
+                <button id="barColorsBtn" class="blocking-icon-btn" title="Bar Colors">🟫</button>
+                <button id="toggleZeroMedia" class="toggle-zero-btn" title="Show 0%">0%</button>
+                <div id="mediaAverage" class="average-display"></div>
+            </h2>
+            <div id="mediaList" class="site-list"></div>
+
+        <div id="browseSection" class="section">
+            <h2>
+                <span class="section-label">Browsing Time</span>
+                <button id="toggleZeroBrowsing" class="toggle-zero-btn" title="Show 0%">0%</button>
+                <div id="browsingAverage" class="average-display"></div>
+                <a href="#top" class="section-top-link">↑</a>
+            </h2>
+          
+            <div id="browsingList" class="site-list"></div>
+        </div>
+
+        <div id="whitelistSection" class="section">
+            <h2>
+                <span class="section-label">Whitelist</span> 
+                <span style="color: var(--accent-color); "> prevent tracking for Media Playing and Browsing Time</span>
+                <a href="#top" class="section-top-link">↑</a>
+            </h2>
+            <div class="whitelist-controls">
+                <input type="text" id="whitelistInput" placeholder="youtube.com (auto-matches all subdomains)">
+                <button id="addWhitelist">Add</button>
+            </div>
+            <small style="color: var(--text-secondary); font-size: 11px; margin-top: 4px; display: block;">
+                Use =www.youtube.com for exact match only. *youtube* matches all subdomain and toplevel domains
+            </small>
+            <div id="whitelistList" class="whitelist-list"></div>
+        </div>
+
+        <div id="blocklistaddSection" class="section">
+            <h2>
+            <span class="section-label">🚫 Block a Site (without visiting)</span> 
+            <a href="#top" class="section-top-link">↑</a>
+            </h2>
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="manualBlockInput" placeholder="example.com" style="flex: 1;">
+                <button id="manualBlockBtn" class="secondary">Add to Block List</button>
+            </div>
+        </div>
+
+        <div id="listsSection" class="section">
+            <h2>
+                <span class="section-label">Lists</span>
+                <button id="pinCalcBtn" class="pin-calc-btn  lists" title="Open in a New Tab">📍</button>
+                <a href="#top" class="section-top-link">↑</a>
+            </h2>
+            <div class="form-group">
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <input type="text" id="listCategoryInput" placeholder="Type category name and press ENTER...">
+                    <button id="addListCategoryBtn" class="blocking-icon-btn" title="Add category">🖋️</button>
+                    <button id="clearAllListsBtn" class="blocking-icon-btn" title="Clear all lists">🗑️</button>
+                    <button id="listCategoryColorsBtn" class="blocking-icon-btn" title="List Colors">🟫</button>
+                </div>
+                
+                <div id="listCategory1">
+                    <div id="listCategory1Container" class="list-category-container"></div>
+                </div>
+                <br><hr><hr><br>
+                <div id="listCategory2">
+                    <div id="listCategory2Container" class="list-category-container"></div>
+                </div>
+                
+                <div id="listItemsSection" class="list-items-section">
+                    <div class="list-items-header">
+                        <h4 id="currentListName"></h4>
+                        <button id="closeListItems" class="blocking-icon-btn" title="Close">✕</button>
+                    </div>
+                    <div class="list-items-input-row">
+                        <input type="text" id="listItemInput" class="list-item-input" placeholder="Type item and press ENTER...">
+                        <button id="listItemColorsBtn" class="blocking-icon-btn" title="Item Colors">🟫</button>
+                    </div>
+                    <div id="listItemsContainer" class="list-items-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sinceSection" class="section">
+            <h2>
+                <span class="section-label">Days Since</span>
+                <button id="sincePinBtn" class="pin-calc-btn since" title="Open in a New Tab">📍</button>
+                <span class="since-example-badge" title="click to reset current duration">example activity</span>
+                <span class="since-example-duration" title="33 days current duration">33</span>
+                <span class="since-example-previous" title="19 days previous duration">19</span>
+                <span class="since-example-delete" title="remove activity">×</span>
+                <a href="#top" class="section-top-link">↑</a>
+            </h2>
+            <div class="form-group">
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <input type="text" id="sinceInput" placeholder="Type activity and press ENTER...">
+                    <button id="addSinceBtn" class="blocking-icon-btn" title="Add activity">🖊️</button>
+                    <button id="clearAllSinceBtn" class="blocking-icon-btn" title="Clear all items">🗑️</button>
+                    <button id="sinceColorsBtn" class="blocking-icon-btn" title="Change Colors">🟫</button>
+                </div>
+                
+                <div id="sinceItemsContainer" class="since-items-container"></div>
+            </div>
+        </div>
+
+        <div id="calcSection" class="section">
+            <h2>
+                <span class="section-label">Convert Units & Calculators</span>
+                <button id="pinCalcBtn" class="pin-calc-btn calc" title="Open in a New Tab">📍</button>
+                <a href="#top" class="section-top-link">↑</a>
+            </h2>
+            
+            <div class="calc-wrapper">
+                <div class="input-row">
+                    <select id="category">
+                        <option value="acceleration">Acceleration</option>
+                        <option value="angle">Angle</option>
+                        <option value="area">Area</option>
+                        <option value="basiccalc">Calculator - Basic</option>
+                        <option value="fraction">Calculator - Fraction</option>
+                        <option value="prime">Calculator - Prime Factorization</option>
+                        <option value="timecalc">Calculator - Time</option>
+                        <option value="tipcalc">Calculator - Tip</option>
+                        <option value="data">Data Storage</option>
+                        <option value="datatransfer">Data Transfer Rate</option>
+                        <option value="energy">Energy</option>
+                        <option value="force">Force</option>
+                        <option value="length">Length</option>
+                        <option value="power">Power</option>
+                        <option value="pressure">Pressure</option>
+                        <option value="speed">Speed</option>
+                        <option value="temperature">Temperature</option>
+                        <option value="time">Time</option>
+                        <option value="torque">Torque</option>
+                        <option value="volume">Volume</option>
+                        <option value="weight">Weight/Mass</option>
+                        <option value="reference">Reference Sheet</option>
+                    </select>
+                </div>
+        
+                <div id="converterSection">
+                    <div class="input-row">
+                        <input type="text" id="value" placeholder="Enter value" step="any">
+                        <button id="clear" class="inline-button clear-button">Clear</button>
+                    </div>
+        
+                    <div class="input-row">
+                        <select id="fromUnit"></select>
+                    </div>
+        
+                    <div id="results"></div>
+                    <div id="formula"></div>
+                </div>
+        
+                <div id="basicCalcSection" style="display: none;">
+                    <div class="calc-display-container">
+                        <input type="text" id="calcDisplay" readonly value="0">
+                    </div>
+                    <div class="calc-input-row">
+                        <input type="text" id="calcInput" placeholder="e.g., 3x4 or 5+2*3">
+                        <select id="tapeMode" class="tape-mode-select">
+                            <option value="off">tape: off</option>
+                            <option value="auto">tape: auto</option>
+                            <option value="autodecimal">tape: auto .</option>
+                            <option value="add">tape: +</option>
+                            <option value="subtract">tape: -</option>
+                            <option value="multiply">tape: ×</option>
+                            <option value="divide">tape: ÷</option>
+                        </select>
+                        <span id="lastTapeEntry" class="last-tape-entry"></span>
+                    </div>
+                    <div class="calc-grid">
+                        <button class="calc-btn" data-action="ac">AC</button>
+                        <button class="calc-btn" data-action="sqrt">√x</button>
+                        <button class="calc-btn" data-action="percent">%</button>
+                        <button class="calc-btn operator" data-action="divide">÷</button>
+                        
+                        <button class="calc-btn" data-value="7">7</button>
+                        <button class="calc-btn" data-value="8">8</button>
+                        <button class="calc-btn" data-value="9">9</button>
+                        <button class="calc-btn operator" data-action="multiply">×</button>
+                        
+                        <button class="calc-btn" data-value="4">4</button>
+                        <button class="calc-btn" data-value="5">5</button>
+                        <button class="calc-btn" data-value="6">6</button>
+                        <button class="calc-btn operator" data-action="subtract">−</button>
+        
+                        <button class="calc-btn" data-value="1">1</button>
+                        <button class="calc-btn" data-value="2">2</button>
+                        <button class="calc-btn" data-value="3">3</button>
+                        <button class="calc-btn operator" data-action="add">+</button>
+                        
+                        <button class="calc-btn" data-value="0">0</button>
+                        <button class="calc-btn" data-action="plusminus">+/−</button>
+                        <button class="calc-btn" data-value=".">.</button>
+                        <button class="calc-btn equals" data-action="equals">=</button>
+                        
+                        <button class="calc-btn" data-action="pi">π</button>
+                        <button class="calc-btn" data-action="power">x<sup>y</sup></button>
+                        <button class="calc-btn" data-action="round2">R2</button>
+                        <button class="calc-btn" data-action="round0">R0</button>
+                    </div>
+                    
+                    <div id="tapeDisplay" style="display: none;">
+                        <div class="tape-header">
+                            <h3>Adding Machine Tape</h3>
+                            <button id="resetTape" class="tape-reset-btn">Reset Tape</button>
+                        </div>
+                        <div id="tapeEntries" class="tape-entries"></div>
+                        <div class="tape-total">
+                            <span>Total:</span>
+                            <span id="tapeTotal">0.00</span>
+                        </div>
+                    </div>
+                </div>
+        
+                <div id="fractionSection" style="display: none;">
+                    <div class="input-row">
+                        <input type="text" id="fractionInput" placeholder="e.g., 3/4 + 6/11 or 5 2/3 x 3 4/3">
+                        <button id="clearFraction" class="inline-button clear-button">Clear</button>
+                    </div>
+                    <div id="fractionResults"></div>
+                </div>
+        
+                <div id="tipSection" style="display: none;">
+                    <div class="tip-row">
+                        <div class="tip-group">
+                            <label>Subtotal $</label>
+                            <input type="number" id="subtotalInput" placeholder="0.00" step="0.01">
+                        </div>
+                        <div class="tip-group">
+                            <label>Total Bill $</label>
+                            <input type="number" id="totalBill" placeholder="0.00" step="0.01">
+                        </div>
+                    </div>
+                    
+                    <div class="tip-row">
+                        <div class="tip-group">
+                            <label>Tax Rate %</label>
+                            <input type="number" id="taxRate" placeholder="0.00" step="0.01">
+                        </div>
+                        <div class="tip-group">
+                            <label>Tax Amount $</label>
+                            <input type="number" id="taxAmount" placeholder="0.00" step="0.01">
+                        </div>
+                    </div>
+                    
+                    <div class="tip-row">
+                        <div class="tip-group">
+                            <label>Tip %</label>
+                            <div class="tip-controls">
+                                <button class="tip-btn" id="tipMinus">−</button>
+                                <input type="number" id="tipPercent" value="15" step="1">
+                                <button class="tip-btn" id="tipPlus">+</button>
+                            </div>
+                        </div>
+                        <div class="tip-group">
+                            <label>Split the Bill?</label>
+                            <div class="tip-controls">
+                                <button class="tip-btn" id="splitMinus">−</button>
+                                <input type="number" id="splitCount" value="1" step="1" min="1">
+                                <button class="tip-btn" id="splitPlus">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tip-row">
+                        <div class="tip-checkbox">
+                            <input type="checkbox" id="doNotTipOnTax">
+                            <label for="doNotTipOnTax">Do not tip on tax</label>
+                        </div>
+                        <div class="tip-checkbox">
+                            <input type="checkbox" id="roundUp">
+                            <label for="roundUp">Round total up to dollars</label>
+                        </div>
+                    </div>
+                    
+                    <div class="tip-buttons">
+                        <button id="clearTip" class="tip-button">Clear</button>
+                    </div>
+                    
+                    <div id="tipResults"></div>
+                </div>
+        
+                <div id="primeSection" style="display: none;">
+                    <div class="input-row">
+                        <input type="text" id="primeInput" placeholder="e.g., 72 or 18, 27 or 20, 50, 120">
+                        <button id="clearPrime" class="inline-button clear-button">Clear</button>
+                    </div>
+                    <div id="primeResults"></div>
+                </div>
+        
+                <div id="timeCalcSection" style="display: none;">
+                    <div class="input-row">
+                        <input type="text" id="timeCalcInput" placeholder="e.g., 2d 3h 23m 42s + 5h 16m 3s">
+                        <button id="clearTimeCalc" class="inline-button clear-button">Clear</button>
+                    </div>
+                    <div id="timeCalcResults"></div>
+                </div>
+        
+                <div id="referenceSection" style="display: none;">
+                    <div class="reference-content">
+                        <div class="reference-group">
+                            <h3>Liquid Measurement Conversions</h3>
+                            <table class="reference-table">
+                                <thead>
+                                    <tr>
+                                        <th>GALLONS</th>
+                                        <th>QUARTS</th>
+                                        <th>PINTS</th>
+                                        <th>CUPS</th>
+                                        <th>OUNCES</th>
+                                        <th>ML</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>1</td><td>4</td><td>8</td><td>16</td><td>128</td><td>3785</td></tr>
+                                    <tr><td>1/2</td><td>2</td><td>4</td><td>8</td><td>64</td><td>1893</td></tr>
+                                    <tr><td>1/4</td><td>1</td><td>2</td><td>4</td><td>32</td><td>946</td></tr>
+                                    <tr><td>1/8</td><td>1/2</td><td>1</td><td>2</td><td>16</td><td>473</td></tr>
+                                    <tr><td>1/16</td><td>1/4</td><td>1/2</td><td>1</td><td>8</td><td>237</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="reference-group">
+                            <h3>Dry Measurements</h3>
+                            <table class="reference-table">
+                                <thead>
+                                    <tr>
+                                        <th>CUPS</th>
+                                        <th>TBSP</th>
+                                        <th>TSP</th>
+                                        <th>GRAMS</th>
+                                        <th>OUNCES</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>1</td><td>16</td><td>48</td><td>229</td><td>8</td></tr>
+                                    <tr><td>3/4</td><td>12</td><td>36</td><td>171</td><td>6</td></tr>
+                                    <tr><td>2/3</td><td>10 2/3</td><td>32</td><td>152</td><td>5.2</td></tr>
+                                    <tr><td>1/2</td><td>8</td><td>24</td><td>114</td><td>4</td></tr>
+                                    <tr><td>1/3</td><td>5 1/3</td><td>16</td><td>76</td><td>2.6</td></tr>
+                                    <tr><td>1/4</td><td>4</td><td>12</td><td>57</td><td>2</td></tr>
+                                    <tr><td>1/8</td><td>2</td><td>6</td><td>29</td><td>1.6</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+        
+                        <div class="reference-group">
+                            <h3>First 40 Perfect Cubes</h3>
+                            <div class="reference-grid" id="perfectCubes"></div>
+                        </div>
+                        
+                        <div class="reference-group">
+                            <h3>Prime Numbers up to 1,000</h3>
+                            <div class="reference-primes" id="primeNumbers"></div>
+                        </div>
+        
+                        <div class="reference-group">
+                            <h3>Multiples of 101
+                            <span class="nav-separator">&#x2007;</span>
+                            <a href="#multiples1001" class="nav-link">Multiples of 1001</a>
+                            <span class="nav-separator">&#x2007;</span>
+                            <a href="#multiples10001" class="nav-link">Multiples of 10001</a>
+                            <span class="nav-separator">&#x2007;</span>
+                            <a href="#multiples100001" class="nav-link">Multiples of 100001</a>
+                            <span class="nav-separator">&#x2007;</span>
+                            <a href="#top" class="section-top-link">↑</a></h3>
+                            <div class="reference-grid-101" id="multiples101"></div>
+                        </div>
+                        
+                        <div class="reference-group">
+                            <h3>Multiples of 1001<a href="#top" class="section-top-link">↑</a></h3>
+                            <div class="reference-grid-1001" id="multiples1001"></div>
+                        </div>
+                        
+                        <div class="reference-group">
+                            <h3>Multiples of 10001<a href="#top" class="section-top-link">↑</a></h3>
+                            <div class="reference-grid-10001" id="multiples10001"></div>
+                        </div>
+                        
+                        <div class="reference-group">
+                            <h3>Multiples of 100001<a href="#top" class="section-top-link">↑</a></h3>
+                            <div class="reference-grid-100001" id="multiples100001"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="importexportSection" class="header-buttons">
+            <button id="importBtn">Import Data</button>
+            <button id="exportBtn">Export Data</button>
+            <button id="deleteAllBtn" class="danger" title="Delete all data">Delete All Data</button>
+        </div>
+        <div>
+            <h3>
+                <p>All media  playing, browsing time, dark mode, blocking, blur, blocked sites, allow-right click, lists, since are Exported to JSON file and can be re-imported.  Importing multple ones it should dedupe data. Disabling extension won't delete data but Delete All Data button will or removing extension.</p>
+            </h3>
+        </div>
+        
+        <div id="helpSection" class="section">
+            <h2 style="display: flex; align-items: center;">
+                <span class="section-label">ZooCage Time Waster Array Help</span>
+                <a href="#top" class="section-top-link">↑</a>
+            </h2>
+            <div class="help-text">
+                <h3 span class="help-example" margin-top: 0;">Time Tracking</h3>
+                
+                <p><span style="color: var(--accent-color)">Media Playing</span> records whenever audio is playing for video or audio in active tab or background tab. When returning to active tab the counter resets to 0 but all time has been recorded. Muted video or audio with no sound is not tracked. Pausing audio or video causes previous time to be recorded and badge counter starts from 0.</p>
+                
+                <p><span style="color: var(--accent-color)">Browsing Time</span> records active tab even if left open for an hour so take that into account. Detecting mouse and keyboard events is more of an unnecessary invasion of privacy.</p>
+                
+                <p><span style="color: var(--accent-color)">Daily average</span> will only average active days with more than 10m of listening/watching time. So Last 7 days daily average wherein user had 3 days with no activity or less than 10m then the average will be total time of 4 days divided by 4 days rather than divided by 7 days.</p>
+                
+                <p><span style="color: var(--accent-color)">Badge counter</span> on icon displays max 3 digits and is only for Media Playing time not for Browsing Time.</p>
+                
+                <p><span style="color: var(--accent-color)">0-900 seconds:</span><span style="color: var(--danger-color)"> updates every 1s</span><br>
+                (100 = 1m 30s) (300 = 5m) (600 = 10m) (900 = 15m)<br>
+                15m - 90m, 90 - 900 (90 mins to 900 mins which is 15 hours)<br>
+                15h - 99h, then broke internet</p>
+                
+                <p>Clicking <span style="color: var(--danger-color)">X</span> removes data for that respective section forever either in <span style="color: var(--accent-color)">Media Playing</span> or <span style="color: var(--accent-color)">Browsing Time</span> for all time periods. Useful for websites you forgot to whitelist.</p>
+        
+                <p><span style="color: var(--accent-color)">ZooCage Time Waster Array</span> helps you gauge how much time is spent online to adjust your habits accordingly. No other extension records actual media playing time automatically except one but must be toggled on for each video/audio. This extension respects your privacy - no data is sent anywhere, everything stays local on your device.</p>
+                
+                <h3 class="help-example">Multi-Term Page Highlighter</h3>
+                
+                <p><span style="color: var(--accent-color)">Search terms</span> can be single words (partial matching) or <span class="help-label">"exactword"</span> or <span class="help-label">"exact phrases"</span></p>
+                
+                <p><span style="color: var(--accent-color)">Diacritics toggle</span> <span class="help-label">(üb/ub)</span> switches between strict matching <span class="help-label">(üb = matches ü exactly)</span> and loose matching <span class="help-label">(ub = matches u, ú, ü, ù)</span>. Must be ON for Japanese, Chinese, Korean</p>
+                
+                <p><span style="color: var(--accent-color)">Highlight Colors button 🟫</span> cycles through different color palettes for your highlighted terms.</p>
+                
+                <p><span style="color: var(--accent-color)">Click highlighted term tag</span> to jump to next occurrence of that term on the page.</p>
+                
+                <p><span style="color: var(--accent-color)">Toggle ON/OFF</span> to show or hide highlights without losing your search terms.</p>
+                
+                <h3 span class="help-example">Dark Mode</h3>
+                
+                <p><span style="color: var(--accent-color)">Global Dark Mode Toggle</span> applies dark mode to all websites. When enabled, inverts page colors for comfortable nighttime browsing.</p>
+                
+                <p><span style="color: var(--accent-color)">Preserve Images</span> prevents images from being inverted in dark mode. Keeps photos and graphics looking natural.</p>
+                
+                <p><span style="color: var(--accent-color)">Auto Dark Elements</span> attempts to intelligently detect and preserve already-dark elements to avoid double-inversion.</p>
+                
+                <p><span style="color: var(--accent-color)">Single Page App</span> reapplies dark mode when navigating to new pages on same site. Useful for sites like GitHub that dynamically load content.</p>
+                
+                <p><span style="color: var(--accent-color)">Site-Specific Dark Mode</span> when a site is added to dark mode settings, shows <span class="help-label">ON/OFF</span> toggle to enable/disable dark mode for just that site, independent of global dark mode.</p>
+                
+                <h3 class="help-example">Content Blocking</h3>
+                
+                <p><span style="color: var(--accent-color)">Global Toggle</span> enables or disables all content blocking features. When OFF, no blocking occurs regardless of site settings.</p>
+                
+                <p><span style="color: var(--accent-color)">Block Images</span> removes images from websites to reduce distractions and speed up page loading. YouTube video thumbnails are preserved.</p>
+                
+                <p><span style="color: var(--accent-color)">Block SVG</span> hides SVG elements which are often used for icons and graphics.</p>
+                
+                <p><span style="color: var(--accent-color)">YouTube Duration Labels</span> If you want to see video duration on YouTube thumbnails while blocking images, temporarily toggle Block Images off then back on. The durations will remain visible until the page reloads.</p>
+                
+                <h3 span class="help-example">Page Editing Tools</h3>
+                                
+                <p><span style="color: var(--accent-color)">Zap Elements Forever ⚡</span> permanently removes clicked elements from a website. Click elements to zap them. Press ESC to exit. Zapped elements stay removed on future visits until cleared.</p>
+                
+                <p><span style="color: var(--accent-color)">Clear Zaps 🗑️/♻️</span> removes all zapped elements for current site. Icon shows ♻️ when zaps exist for the site.</p>
+                
+                <p><span style="color: var(--accent-color)">Blur Elements Forever 💧</span> adds progressive blur levels to clicked elements. Click multiple times to cycle through 5 blur levels. Press ESC to exit. Blur settings persist across page reloads.</p>
+                
+                <p><span style="color: var(--accent-color)">Clear Blurs 🗑️/♻️</span> removes all blur overlays for current site. Icon shows ♻️ when blurs exist for the site.</p>
+                
+                <p><span style="color: var(--accent-color)">Invert CSS Colors 🌗</span> inverts colors of clicked elements. Click to toggle invert on/off. Press ESC to exit. Useful for creating custom dark mode sections.</p>
+                
+                <p><span style="color: var(--accent-color)">Clear Inverts 🗑️/♻️</span> removes all color inversions for current site. Icon shows ♻️ when inverts exist for the site.</p>
+                
+                <p><span style="color: var(--accent-color)">Invert Parent 🌒</span> inverts only the parent element's colors without affecting children. Useful for inverting backgrounds while preserving content colors.</p>
+                
+                <p><span style="color: var(--accent-color)">Clear Parent Inverts 🗑️/♻️</span> removes all parent-only inversions for current site. Icon shows ♻️ when parent inverts exist.</p>
+        
+                <h3 span class="help-example">Color, Image, Source Code Utilities</h3>
+                
+                <p><span style="color: var(--accent-color)">Color Palette Generator 🎨</span> opens tool for creating custom color palettes from images.</p>
+                
+                <p><span style="color: var(--accent-color)">Join Images 🔗</span> opens tool for combining multiple images into one.</p>
+                
+                <p><span style="color: var(--accent-color)">Masonry Gallery 🌅</span> opens AVIF image gallery viewer with masonry layout.</p>
+                
+                <p><span style="color: var(--accent-color)">Code Snippets 📝</span> opens code snippet manager with syntax highlighting.</p>
+                
+                <h3 span class="help-example">Site-Specific Settings</h3>
+                
+                <p><span style="color: var(--accent-color)">Site Dropdown</span> shows current site and allows switching between configured sites. Current site is always listed first.</p>
+                
+                <p><span style="color: var(--accent-color)">Dark Mode </span><span class="help-label">🌙/☀️</span> adds or removes site-specific dark mode settings. When added, shows <span class="help-label">ON/OFF</span> toggle to enable/disable dark mode for just this site.</p>
+                
+                <p><span style="color: var(--accent-color)">Blocking </span><span class="help-label">🌡/🧪</span> adds or removes site-specific blocking settings. When added, site can have its own Image/SVG blocking rules independent of global settings.</p>
+                
+                <p><span style="color: var(--accent-color)">Blur Site 💦/☁️</span> toggles image and video blurring for the current site. Use sliders to adjust blur intensity for images and videos separately. Toggle color inversion 🩻 to invert blurred content colors.</p>
+                
+                <p><span style="color: var(--accent-color)">Block Site 🚫</span> adds current site to permanent block list. When blocked, visiting the site shows a blocked page with unblock option. Duration shows how long site has been blocked.</p>
+                
+                <p><span style="color: var(--accent-color)">Right-click 🖱️/👆</span> adds or removes site from right-click allowed list. Useful for sites that block right-click menu or prevent text selection.</p>
+                
+                <p><span style="color: var(--accent-color)">Refresh 🌀</span> reloads the current page to apply changes.</p>
+                
+                <h3 span class="help-example">Max Tabs Manager</h3>
+                
+                <p><span style="color: var(--accent-color)">Max Tabs Toggle</span> enables automatic tab management. When enabled, limits the number of loaded tabs to conserve memory.</p>
+                
+                <p><span style="color: var(--accent-color)">Tab Count Display</span> shows currently loaded tabs. Turns red when over the limit. Click to see current count.</p>
+                
+                <p><span style="color: var(--accent-color)">Tab Limit Buttons </span><span class="help-label">1 2 3 4 5 6</span> sets how many tabs to keep loaded. Tabs with audio playing and blank tabs are never unloaded.</p>
+        
+                <h3 span class="help-example">Edit, Bar Colors, Image Zoom, Grayscale, Autoplay</h3>
+        
+                <p><span style="color: var(--accent-color)">Edit Site Text ✏️</span> enables design mode allowing you to click and edit any text on the page. Press ESC to exit. Changes are not saved when page reloads.</p>
+                
+                <p><span style="color: var(--accent-color)">Hover Image Zoom 🔎/🔍</span> enables hovering over images to show enlarged preview. Toggle between <span class="help-label">ON</span> 🔍 and <span class="help-label">OFF</span> 🔎.</p>
+                
+                <p><span style="color: var(--accent-color)">Block Autoplay ▶️/⏸️</span> prevents videos and audio from automatically playing. Toggle between <span class="help-label">Allow</span> ▶️ and <span class="help-label">Block</span> ⏸️. User-initiated playback and muted videos are always allowed.</p>
+                
+                <p><span style="color: var(--accent-color)">Grayscale Mode 👓/🧬</span> applies grayscale filter to entire page. Toggle between <span class="help-label">ON</span> 🧬 and <span class="help-label">OFF</span> 👓.</p>
+                
+                <p><span style="color: var(--accent-color)">Bar Colors 🟫</span> cycles through different color schemes for the time tracking bars.</p>
+                
+                <p><span style="color: var(--accent-color)">Pin Calculator 📍</span> opens popup in new tab for persistent access while browsing.</p>
+                
+                <h3 span class="help-example">YouTube Settings</h3>
+                
+                <p><span style="color: var(--accent-color)">Default Quality 📺</span> sets preferred video quality for YouTube videos. Options range from 144p to 2160p (4K).</p>
+                
+                <p><span style="color: var(--accent-color)">Hide Elements</span> removes distracting elements from YouTube: <span class="help-label">Recommended</span> sidebar videos, <span class="help-label">Shorts</span>, <span class="help-label">Comments</span>, <span class="help-label">Explore</span> page, <span class="help-label">More from YouTube</span> section, and <span class="help-label">End Cards</span> recommendations.</p>
+                
+                <p><span style="color: var(--accent-color)">Disable Autoplay</span> prevents YouTube from automatically playing the next video.</p>
+                
+                <h3 span class="help-example">Clip as Markdown</h3>
+                
+                <p><span style="color: var(--accent-color)">Clip as Markdown</span> extracts main article content and converts to markdown format. Use keyboard shortcut <span class="help-label">Ctrl+Shift+X</span> (Windows/Linux) or <span class="help-label">⌘⇧X</span> (Mac) or context menu.</p>
+                
+                <p><span style="color: var(--accent-color)">Remove Images</span> strips all images from the markdown output, creating text-only document.</p>
+                
+                <p><span style="color: var(--accent-color)">Embed as AVIF</span> converts images to AVIF format (max 512px) and embeds them as base64 data URLs in the markdown. Choose <span class="help-label">Color</span> or <span class="help-label">Grayscale</span> mode.</p>
+                
+                <p><span style="color: var(--accent-color)">AVIF Processing</span> When embedding images, the extension shows progress notification. Images are cached to speed up repeated clips from the same page. If doing Clip to Markdown again on the same page you must refresh page for it to process again. First clip may take 5-300 seconds depending on number of images.</p>
+                
+                <h3 span class="help-example">Lists</h3>
+                
+                <p><span style="color: var(--accent-color)">Lists</span> create and manage categorized item lists. Two category rows allow organizing related lists together.</p>
+                
+                <p><span style="color: var(--accent-color)">Add Category</span> type category name and press ENTER or click 🖋️ to create new list category.</p>
+                
+                <p><span style="color: var(--accent-color)">Click Category</span> to open that list and add items. Items show count badges.</p>
+                
+                <p><span style="color: var(--accent-color)">List Colors 🟫</span> cycles through color palettes for category and item badges.</p>
+                
+                <p><span style="color: var(--accent-color)">Clear All Lists 🗑️</span> deletes all lists and categories after confirmation.</p>
+                
+                <h3 span class="help-example">Days Since</h3>
+                
+                <p><span style="color: var(--accent-color)">Days Since</span> tracks days elapsed since events or activities. Useful for tracking habits, milestones, or countdowns. Shows hours and minutes if less than a day</p>
+                
+                <p><span style="color: var(--accent-color)">Add Activity</span> type activity name and press ENTER or click 🖊️ to start tracking.</p>
+                
+                <p><span style="color: var(--accent-color)">Click Activity Badge</span> to reset the counter to 0 days. Previous duration is saved and displayed in green.</p>
+                
+                <p><span style="color: var(--accent-color)">Current Duration</span> shows in white, previous duration in green. Click <span style="color: var(--danger-color)">×</span> to remove activity entirely.</p>
+                
+                <p><span style="color: var(--accent-color)">Change Colors 🟫</span> cycles through color palettes for activity badges.</p>
+                
+                <h3 span class="help-example">Time Period Selection</h3>
+                
+                <p><span style="color: var(--accent-color)">Period Dropdown</span> filters tracking data by time range: <span class="help-label">Today, Yesterday, Last 7 / 14 / 21 / 30 / 60 / 90 / 180 / 365 / 730 days.</span> Shows total time and daily averages. Daily averages are computed based on number of active days.  Active day is a day with at least 5 minutes (either Media Playing or Browsing Time or combination of both).  So Last 30 days with say 22 days active then it's total time divided by 22 and not by 30.</p>
+                
+                <p><span style="color: var(--accent-color)">0% Toggle Buttons</span> shows or hides sites with <span class="help-label">0% time</span> in that period. Useful for decluttering the view.</p>
+                
+                <h3 span class="help-example">Whitelist</h3>
+                
+                <p><span style="color: var(--accent-color)">Whitelist</span> excludes sites from time tracking. Add domains to stop tracking time on those sites.</p>
+                
+                <p><span style="color: var(--accent-color)">Pattern Matching:</span> Use <span class="help-label">youtube.com</span> to match all subdomains automatically. Use <span class="help-label">=www.youtube.com</span> for exact match only. Use <span class="help-label">*youtube*</span> to match all domains containing "youtube".</p>
+                
+                <h3 span class="help-example">Block a Site</h3>
+                
+                <p><span style="color: var(--accent-color)">Manual Block</span> allows blocking a site without visiting it. Enter domain like <span class="help-label">example.com</span> and click Add to Block List. Site will be immediately blocked.</p>
+                
+                <h3 span class="help-example">Convert Units & Calculators</h3>
+                
+                <p><span style="color: var(--accent-color)">Pin Calculator 📍</span> opens calculator in new tab for persistent access while browsing.</p>
+                
+                <p><span style="color: var(--accent-color)">Unit Converter</span> converts between units in 20+ categories: <span class="help-label">Acceleration, Angle, Area, Data Storage, Data Transfer Rate, Energy, Force, Length, Power, Pressure, Speed, Temperature, Time, Torque, Volume, Weight/Mass.</span></p>
+                
+                <p><span style="color: var(--accent-color)">Calculator - Basic</span> standard calculator with tape mode for adding machine functionality. Supports operators <span class="help-label">+, -, ×, ÷, ^</span>, square root, percentage, pi, rounding. Tape modes: auto <span class="help-label">(detects operator)</span>, auto decimal <span class="help-label">(divides by 100)</span>, or fixed operator <span class="help-label">+, -, ×, ÷</span>.</p>
+                
+                <p><span style="color: var(--accent-color)">Calculator - Fraction</span> performs arithmetic on fractions and mixed numbers. Supports <span class="help-label">3/4 + 5/6</span>, <span class="help-label">5 2/3 x 3 4/3</span>, division with <span class="help-label">//</span>. Shows results as mixed numbers, improper fractions, and decimals.</p>
+                
+                <p><span style="color: var(--accent-color)">Calculator - Prime Factorization</span> finds prime factors, all factors, GCF, and LCM. Enter single number like <span class="help-label">72</span> or multiple like <span class="help-label">18, 27</span> or <span class="help-label">20 50 120</span>.</p>
+                
+                <p><span style="color: var(--accent-color)">Calculator - Time</span> performs arithmetic on time durations. Use format like <span class="help-label">2d 3h 23m 42s + 5h 16m 3s</span>. Supports <span class="help-label">y</span> years, <span class="help-label">mo</span> months, <span class="help-label">w</span> weeks, <span class="help-label">d</span> days, <span class="help-label">h</span> hours, <span class="help-label">m</span> minutes, <span class="help-label">s</span> seconds, <span class="help-label">ms</span> milliseconds. Can multiply/divide by numbers.</p>
+                
+                <p><span style="color: var(--accent-color)">Calculator - Tip</span> calculates tips, splits bills, handles tax. Enter any combination of Subtotal, Total Bill, Tax Rate, or Tax Amount and calculator figures out the rest. Supports split billing and rounding up to dollars.</p>
+                
+                <p><span style="color: var(--accent-color)">Reference Sheet</span> includes liquid measurements, dry measurements, perfect cubes 1-50, prime numbers up to 1000, and multiples of <span class="help-label">101, 1001, 10001, 100001</span>.</p>
+                
+                <h3 span class="help-example">Data Management</h3>
+                
+                <p><span style="color: var(--accent-color)">Export Data</span> saves all tracking data, settings, highlights, blocks, and zaps to JSON file. Use this to backup your data.</p>
+                
+                <p><span style="color: var(--accent-color)">Import Data</span> opens data manager in new tab where you can select and import previously exported JSON file. Importing multiple files will merge and deduplicate data.</p>
+                
+                <p><span style="color: var(--accent-color)">Delete All Data</span> permanently deletes all tracking data for all time periods. Requires double confirmation. Does not delete settings, blocks, or zaps.</p>
+                
+                <p>If you remove extension all data is lost. Use <span style="color: var(--accent-color)">Export / Import</span> if you wish to retain data. Disabling extension and re-enabling still retains all data.</p>
+                                
+            </div>
+        </div>
+    </div>
+</div>
+    <script src="popup.js"></script>
+    <script src="calc.js"></script>
+</body>
+</html>

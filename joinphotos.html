@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Join Images</title>
+<meta name="description" content="Merge multiple photos into one image">
+<style>
+:root {
+    --bg-primary: #f7f7f7;
+    --bg-secondary: #ffffff;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --border-color: #e5e7eb;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+}
+
+:root.dark {
+    --bg-primary: #0f0f0f;
+    --bg-secondary: #1a1a1a;
+    --text-primary: #f9fafb;
+    --text-secondary: #9ca3af;
+    --border-color: #374151;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+.container {
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.header {
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.5rem 0;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.theme-btn {
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: var(--text-primary);
+}
+
+.card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.title {
+    font-size: 1.125rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.upload-area {
+    border: 2px dashed var(--border-color);
+    border-radius: 0.5rem;
+    padding: 3rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.upload-area:hover {
+    border-color: var(--accent);
+}
+
+.upload-area.dragover {
+    border-color: var(--accent);
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.upload-btn {
+    background-color: var(--accent);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.upload-btn:hover {
+    background-color: var(--accent-hover);
+}
+
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.image-thumb {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 2px solid var(--border-color);
+    cursor: move;
+}
+
+.image-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-thumb .remove-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ef4444;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.image-thumb:hover .remove-btn {
+    opacity: 1;
+}
+
+.sort-buttons {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.sort-btn {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.sort-btn:hover {
+    background-color: var(--accent);
+    color: white;
+}
+
+.layout-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.layout-btn {
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: var(--bg-secondary);
+}
+
+.layout-btn.active {
+    border-color: var(--accent);
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    display: flex;
+    justify-content: space-between;
+}
+
+.slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(59, 130, 246, 0.2);
+    outline: none;
+    cursor: pointer;
+}
+
+.color-input {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+}
+
+.sizing-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.sizing-select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.preview-area {
+    background-color: var(--bg-primary);
+    border-radius: 0.5rem;
+    padding: 2rem;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.canvas {
+    max-width: 100%;
+    max-height: 500px;
+    border: 1px solid var(--border-color);
+    border-radius: 0.25rem;
+    background: white;
+}
+
+.btn-group {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background-color: var(--accent);
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: var(--accent-hover);
+}
+
+.btn-secondary {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background-color: var(--bg-primary);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.feature {
+    text-align: center;
+    padding: 1rem;
+}
+
+.feature-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.status {
+    margin-top: 1rem;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+}
+
+.status.success {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.status.error {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.dropdown {
+    position: relative;
+    width: 150%;
+    cursor: pointer;
+    user-select: none;
+}
+
+.dropdown .selected {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dropdown .selected::after {
+    content: '▼';
+    font-size: 0.7rem;
+    margin-left: 0.5rem;
+    opacity: 0.6;
+}
+
+.dropdown.open .selected::after {
+    content: '▲';
+}
+
+.dropdown .options {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 0.375rem 0.375rem;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.dropdown.open .options {
+    display: block;
+}
+
+.dropdown .option {
+    padding: 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s;
+}
+
+.dropdown .option:hover {
+    background-color: var(--bg-primary);
+}
+
+.dropdown:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+</style>
+</head>
+<body>
+<header class="header">
+<div class="container">
+<div class="header-content">
+<h1 ><span style="color: #d34f02;">Z</span><span style="color: #bb4838;">o</span><span style="color: #af6743;">o</span><span style="color: #caa98a;">C</span><span style="color: #c9a16e;">a</span><span style="color: #b79767;">g</span><span style="color: #8e6845;">e</span></h1>
+<h1 class="logo"> 🔗 Combine Images 🔗 Photo Merger🔗</h1>
+<button id="theme-toggle" class="theme-btn">
+<svg class="w-5 h-5" fill="#fbbf24" viewBox="0 0 24 24" id="sun-icon" width="20" height="20">
+<path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z"/>
+</svg>
+<svg class="w-5 h-5 hidden" fill="#fbbf24" viewBox="0 0 24 24" id="moon-icon" width="20" height="20">
+<path fill-rule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clip-rule="evenodd"/>
+</svg>
+</button>
+</div>
+</div>
+</header>
+
+<main class="container">
+<div class="card">
+<h2 class="title">1. Select Images to Combine</h2>
+<div class="upload-area" id="upload-area">
+<div style="color:var(--text-secondary);margin-bottom:1rem">Drag & drop your photos here (jpg, png, webp, avif, static gif) or</div>
+<button class="upload-btn" id="upload-btn">Choose Images</button>
+<input type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif,image/gif" class="hidden" id="file-input">
+</div>
+<div id="status" class="status hidden"></div>
+
+<div id="image-section" class="hidden">
+<h3 class="title">2. Arrange Your Images</h3>
+<div class="sort-buttons">
+<button class="sort-btn" data-sort="name-asc">📝 Name A-Z</button>
+<button class="sort-btn" data-sort="name-desc">📝 Name Z-A</button>
+<button class="sort-btn" data-sort="size-asc">📏 Size ↑</button>
+<button class="sort-btn" data-sort="size-desc">📏 Size ↓</button>
+<button class="sort-btn" data-sort="shuffle">🔀 Shuffle</button>
+</div>
+<div class="image-grid" id="image-grid"></div>
+</div>
+</div>
+
+<div class="card" id="layout-section" style="display:none">
+<h2 class="title">3. Choose Layout Style</h2>
+<div class="layout-grid">
+<button class="layout-btn" data-layout="horizontal">
+<div style="width:3rem;height:2rem;margin:0 auto 0.5rem;background:#9ca3af;border-radius:0.25rem;display:flex">
+<div style="flex:1;background:#6b7280;border-radius:0.25rem 0 0 0.25rem"></div>
+<div style="width:1px;background:white"></div>
+<div style="flex:1;background:#6b7280;border-radius:0 0.25rem 0.25rem 0"></div>
+</div>
+<div style="font-size:0.875rem;color:var(--text-primary)">Horizontal</div>
+</button>
+<button class="layout-btn active" data-layout="vertical">
+<div style="width:2rem;height:3rem;margin:0 auto 0.5rem;background:#9ca3af;border-radius:0.25rem;display:flex;flex-direction:column">
+<div style="flex:1;background:#6b7280;border-radius:0.25rem 0.25rem 0 0"></div>
+<div style="height:1px;background:white"></div>
+<div style="flex:1;background:#6b7280;border-radius:0 0 0.25rem 0.25rem"></div>
+</div>
+<div style="font-size:0.875rem;color:var(--text-primary)">Vertical</div>
+</button>
+<button class="layout-btn" data-layout="grid">
+<div style="width:3rem;height:3rem;margin:0 auto 0.5rem;background:#9ca3af;border-radius:0.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1px">
+<div style="background:#6b7280;border-radius:0.25rem 0 0 0"></div>
+<div style="background:#6b7280;border-radius:0 0.25rem 0 0"></div>
+<div style="background:#6b7280;border-radius:0 0 0 0.25rem"></div>
+<div style="background:#6b7280;border-radius:0 0 0.25rem 0"></div>
+</div>
+<div style="font-size:0.875rem;color:var(--text-primary)">Grid</div>
+</button>
+</div>
+
+<h3 class="title">Customize Appearance</h3>
+<div class="controls-grid">
+<div class="control-group">
+<label class="label">Padding <span id="padding-value">10</span>px</label>
+<input type="range" class="slider" id="padding-slider" min="0" max="50" value="10">
+</div>
+<div class="control-group">
+<label class="label">Background Color</label>
+<div style="display:flex;align-items:center;gap:0.5rem">
+<input type="color" class="color-input" id="bg-color" value="#000000">
+<span style="font-size:0.875rem;color:var(--text-secondary)" id="bg-color-text">#000000</span>
+</div>
+</div>
+<div class="control-group">
+<label class="label">Border Width <span id="border-value">0</span>px</label>
+<input type="range" class="slider" id="border-slider" min="0" max="20" value="0">
+</div>
+<div class="control-group">
+<label class="label">Border Color</label>
+<div style="display:flex;align-items:center;gap:0.5rem">
+<input type="color" class="color-input" id="border-color" value="#000000">
+<span style="font-size:0.875rem;color:var(--text-secondary)" id="border-color-text">#000000</span>
+</div>
+</div>
+<div class="control-group">
+    <label class="label">Image Sizing</label>
+    <div class="dropdown" tabindex="0" id="imageSizingDropdown">
+        <div class="selected">Keep original sizes</div>
+        <div class="options"></div>
+    </div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="card" id="preview-section" style="display:none">
+<h2 class="title">4. Preview Combined Image</h2>
+<div class="preview-area">
+<canvas class="canvas" id="canvas"></canvas>
+</div>
+</div>
+
+<div class="btn-group" id="action-buttons" style="display:none">
+<button class="btn btn-secondary" id="reset-btn">🔄 Reset</button>
+<button class="btn btn-primary" id="download-jpg-btn" disabled>📷 Download JPG (85% quality)</button>
+<button class="btn btn-primary" id="download-png-btn" disabled>🖼️ Download PNG (lossless)</button>
+<button class="btn btn-primary" id="download-avif-btn" disabled>✨ Open AVIF (smallest)</button>
+
+</div>
+
+<div class="card">
+<div class="features-grid">
+<div class="feature">
+<p class="feature-text">In Librewolf | Settings | Privacy and Security | Strict make sure to check</p>
+<p class="feature-text">Allow LibreWolf to automatically apply exceptions required to avoid major website breakage.</p>
+<p class="feature-text">Otherwise jpg and png images will be corrupted</p>
+
+
+</div>
+</div>
+</div>
+</main>
+
+<script src="joinphotos.js"></script>
+</body>
+</html>

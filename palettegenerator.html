@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZooCage Color Palette Generator</title>
+    <style>
+       * {
+           margin: 0;
+           padding: 0;
+           box-sizing: border-box;
+       }
+       
+       body {
+           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+           background: #222222;
+           color: #e0e0e0;
+           padding: 2rem;
+       }
+       
+       a {
+           color: #efaa97;
+           text-decoration: none;
+           transition: opacity 0.2s;
+       }
+       
+       a:hover {
+           opacity: 0.8;
+           text-decoration: underline;
+       }
+       
+       .header {
+           text-align: center;
+           margin-bottom: 2rem;
+       }
+       
+       .header h1 {
+           color: #f0f0f0;
+           margin-bottom: 0.5rem;
+       }
+       
+       .header p {
+           color: #aaa;
+       }
+       
+       .controls {
+           background: #2a2a2a;
+           padding: 1.5rem;
+           border-radius: 8px;
+           margin-bottom: 2rem;
+           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+       }
+       
+       .control-group {
+           display: flex;
+           gap: 1rem;
+           flex-wrap: wrap;
+           align-items: center;
+           justify-content: center;
+       }
+       
+       .control-item {
+           display: flex;
+           flex-direction: column;
+           gap: 0.25rem;
+       }
+       
+       .multi-select-item {
+           display: flex;
+           flex-direction: column;
+           gap: 0.5rem;
+           align-items: center;
+       }
+       
+       .multi-select-label {
+           font-weight: 600;
+           color: #bbb;
+           font-size: 0.875rem;
+           text-align: center;
+       }
+       
+       .multi-palette-section {
+           display: flex;
+           align-items: center;
+           gap: 1rem;
+       }
+       
+       .multi-select-label-inline {
+           font-weight: 600;
+           color: #bbb;
+           font-size: 0.875rem;
+           white-space: nowrap;
+           min-width: fit-content;
+       }
+       
+       .multi-select-buttons-grid {
+           display: grid;
+           grid-template-columns: 1fr 1fr auto;
+           gap: 0.5rem;
+           flex: 1;
+       }
+       
+       .multi-select-buttons-grid .clear-selection-btn {
+           grid-row: 1 / 3;
+           grid-column: 3;
+       }
+       
+       label {
+           font-weight: 600;
+           color: #bbb;
+           font-size: 0.875rem;
+       }
+       
+       select,
+       input {
+           padding: 0.5rem;
+           border: 1px solid #444;
+           border-radius: 4px;
+           font-size: 1rem;
+           background: #333;
+           color: #e0e0e0;
+       }
+       
+       button {
+           background: #007bff;
+           color: white;
+           border: none;
+           padding: 0.75rem 1.5rem;
+           border-radius: 4px;
+           cursor: pointer;
+           font-weight: 600;
+           font-size: 1rem;
+           transition: background 0.2s;
+           white-space: nowrap;
+       }
+       
+       button:hover {
+           background: #0056b3;
+       }
+       
+
+       button.generate-palettes-btn {
+           white-space: normal;
+           line-height: 1.3;
+           padding: 0.75rem 1rem;
+           min-width: 120px;
+       }
+       
+       .preset-btn {
+           background: #28a745;
+           padding: 0.75rem 1.5rem;
+       }
+       
+       .preset-btn:hover {
+           background: #218838;
+       }
+       
+       .multi-copy-btn {
+           padding: 0.5rem 1rem;
+           font-size: 0.875rem;
+           font-weight: 600;
+           border: none;
+           border-radius: 4px;
+           cursor: pointer;
+           transition: all 0.2s;
+       }
+       
+       .multi-copy-btn.words {
+           background: #4CAF50;
+           color: white;
+       }
+       
+       .multi-copy-btn.words:hover {
+           background: #45a049;
+       }
+       
+       .multi-copy-btn.letters {
+           background: #FF9800;
+           color: white;
+       }
+       
+       .multi-copy-btn.letters:hover {
+           background: #e68900;
+       }
+       
+       .multi-copy-btn:disabled {
+           background: #555;
+           color: #888;
+           cursor: not-allowed;
+       }
+       
+       .multi-copy-btn.secondary {
+           opacity: 0.85;
+           font-size: 0.7rem;
+       }
+       
+       .clear-selection-btn {
+           background: #dc3545;
+           color: white;
+           padding: 0.5rem 1rem;
+           font-size: 0.875rem;
+       }
+       
+       .clear-selection-btn:hover {
+           background: #c82333;
+       }
+       
+       .palette-grid {
+           display: grid;
+           grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+           gap: 1.5rem;
+       }
+       
+       .palette-grid.wide-palettes {
+           grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+       }
+       
+       .palette-card {
+           background: #2a2a2a;
+           border-radius: 8px;
+           overflow: hidden;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+           transition: transform 0.2s, box-shadow 0.2s;
+           cursor: pointer;
+           position: relative;
+       }
+       
+       .palette-card:hover {
+           transform: translateY(-4px);
+           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+       }
+       
+       .palette-card.selected {
+           box-shadow: 0 0 0 3px #007bff;
+       }
+       
+       .selection-badge {
+           position: absolute;
+           top: 10px;
+           right: 10px;
+           background: #007bff;
+           color: white;
+           width: 30px;
+           height: 30px;
+           border-radius: 50%;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           font-weight: bold;
+           font-size: 0.875rem;
+           z-index: 2;
+           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+       }
+       
+       .palette-colors {
+           display: grid;
+           grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+           min-height: 60px;
+       }
+
+       .widest-palettes {
+           grid-template-columns: 1fr !important;
+       }
+       
+       .palette-colors.two-columns {
+           grid-template-columns: repeat(2, 1fr);
+       }
+       
+       .palette-colors.one-column {
+           grid-template-columns: 1fr;
+       }
+       
+       .color-block {
+           position: relative;
+           display: flex;
+           align-items: flex-end;
+           justify-content: center;
+           padding: 0.5rem;
+           min-height: 60px;
+           cursor: pointer;
+           transition: opacity 0.2s;
+       }
+       
+       .color-block:hover {
+           opacity: 0.85;
+       }
+       
+       .color-label {
+           font-size: 0.75rem;
+           font-weight: 600;
+           padding: 0.25rem 0.5rem;
+           border-radius: 4px;
+           background: rgba(255, 255, 255, 0.9);
+           color: #333;
+           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+           pointer-events: none;
+           opacity: 0;
+           transition: opacity 0.2s;
+       }
+       
+       .color-block:hover .color-label {
+           opacity: 1;
+       }
+       
+       .palette-info {
+           padding: 1rem;
+       }
+       
+       .palette-name {
+           font-weight: 600;
+           color: #f0f0f0;
+           margin-bottom: 0.5rem;
+           display: inline;
+       }
+       
+       .harmony-type {
+           font-size: 0.875rem;
+           color: #888;
+           margin-bottom: 0.5rem;
+           display: inline;
+           margin-left: 0.5rem;
+       }
+
+       .control-item-horizontal {
+           display: flex;
+           align-items: center;
+           gap: 0.5rem;
+       }
+       
+       .control-item-horizontal label {
+           white-space: nowrap;
+           min-width: fit-content;
+       }
+       
+       .control-column {
+           display: flex;
+           flex-direction: column;
+           gap: 0.5rem;
+       }
+       
+       .copy-buttons {
+           display: flex;
+           flex-direction: column;
+           gap: 0.5rem;
+           margin-bottom: 0.5rem;
+           margin-top: 0.5rem;
+       }
+       
+       .button-row {
+           display: flex;
+           gap: 0.5rem;
+       }
+       
+       .button-row-label {
+           font-size: 0.7rem;
+           color: #888;
+           margin-bottom: 0.25rem;
+           font-weight: 600;
+       }
+       
+       .copy-btn {
+           flex: 1;
+           padding: 0.5rem;
+           background: #444;
+           border: 1px solid #555;
+           border-radius: 4px;
+           color: #e0e0e0;
+           font-size: 0.75rem;
+           font-weight: 600;
+           cursor: pointer;
+           transition: all 0.2s;
+       }
+       
+       .copy-btn:hover {
+           background: #555;
+           border-color: #666;
+       }
+       
+       .copy-btn.words {
+           border-left: 3px solid #4CAF50;
+       }
+       
+       .copy-btn.letters {
+           border-left: 3px solid #FF9800;
+       }
+       
+       .copy-btn.secondary {
+           opacity: 0.85;
+           font-size: 0.7rem;
+       }
+       
+       .copy-btn.secondary.words {
+           border-left: 3px solid #66BB6A;
+       }
+       
+       .copy-btn.secondary.letters {
+           border-left: 3px solid #FFB74D;
+       }
+       
+       .palette-array {
+           font-size: 0.75rem;
+           color: #888;
+           margin-top: 0.5rem;
+           font-family: 'Courier New', monospace;
+           word-break: break-all;
+       }
+       
+       .toast {
+           position: fixed;
+           top: 2rem;
+           right: 2rem;
+           background: #4a4a4a;
+           color: white;
+           padding: 1rem 1.5rem;
+           border-radius: 8px;
+           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+           opacity: 0;
+           transform: translateY(-100px);
+           transition: all 0.3s;
+           z-index: 1000;
+       }
+       
+       .toast.show {
+           opacity: 1;
+           transform: translateY(0);
+       }
+       
+       .loading {
+           grid-column: 1/-1;
+           text-align: center;
+           color: #888;
+           padding: 2rem;
+       }
+       
+       .back-to-top {
+           position: fixed;
+           bottom: 2rem;
+           right: 2rem;
+           background: #007bff;
+           width: 50px;
+           height: 50px;
+           border-radius: 50%;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           cursor: pointer;
+           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+           transition: all 0.3s;
+           z-index: 999;
+           opacity: 0;
+           visibility: hidden;
+       }
+       
+       .back-to-top.visible {
+           opacity: 1;
+           visibility: visible;
+       }
+       
+       .back-to-top:hover {
+           background: #0056b3;
+           transform: translateY(-4px);
+           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+       }
+       
+       .back-to-top svg {
+           width: 24px;
+           height: 24px;
+           fill: white;
+       }
+       
+       @media (max-width: 768px) {
+           body {
+               padding: 1rem;
+           }
+       
+           .palette-grid {
+               grid-template-columns: 1fr;
+           }
+       
+           .back-to-top {
+               bottom: 1rem;
+               right: 1rem;
+           }
+           
+       }
+    </style>
+</head>
+
+<body>
+    
+    <div class="header">
+        <h1>  <span style="color: #d34f02;">Z</span><span style="color: #bb4838;">o</span><span style="color: #af6743;">o</span><span style="color: #caa98a;">C</span><span style="color: #c9a16e;">a</span><span style="color: #b79767;">g</span><span style="color: #8e6845;">e</span> 🎨 Color Palette Generator</h1>
+        <p>Click <span style="font-weight: bold; color: white;">Words</span> or <span
+                style="font-weight: bold; color: white;">Letters</span> button to copy palette, <span
+                style="font-weight: bold; color: white;">⌥⌘v</span> in mpv to paste and apply it to subtitle</p>
+        <p>Colored letters break ligatures in ligature fonts, instead use Alternate Characters fonts</p>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <div class="control-column">
+                <div class="control-item-horizontal">
+                    <label for="presetType">Preset:</label>
+                    <select id="presetType">
+                        <option value="56">56 / palettemaker 5 Colors</option>
+                        <option value="229">229 / 10+ Colors</option>
+                        <option value="250" selected>250 / Food 12 Colors</option>
+                        <option value="300">300 / 5 Colors</option>
+                        <option value="410">410 / 5 Colors</option>
+                        <option value="43">43 / tailwind 9+ Colors</option>
+                    </select>
+                </div>
+                <div class="control-item-horizontal">
+                    <label for="harmonyType">Harmony Type:</label>
+                    <select id="harmonyType">
+                        <option value="mixed" selected>Mixed (Random)</option>
+                        <option value="analogous">Analogous</option>
+                        <option value="complementary">Complementary</option>
+                        <option value="monochromatic">Monochromatic</option>
+                        <option value="radix-tailwind">Radix & Tailwind</option>
+                    </select>
+                </div>
+            </div>
+        
+            <div class="control-column" id="paletteSizeColumn">
+                <div class="control-item-horizontal" id="paletteSizeControl">
+                    <label for="paletteSize">Colors per Palette:</label>
+                    <select id="paletteSize">
+                        <option value="3">3 colors</option>
+                        <option value="4">4 colors</option>
+                        <option value="5">5 colors</option>
+                        <option value="6">6 colors</option>
+                        <option value="8">8 colors</option>
+                        <option value="10">10 colors</option>
+                        <option value="12" selected>12 colors</option>
+                    </select>
+                </div>
+                <div class="control-item-horizontal">
+                    <label for="paletteCount">Number of Palettes:</label>
+                    <input type="number" id="paletteCount" value="111" min="5" max="457">
+                </div>
+            </div>
+        
+            <button class="generate-palettes-btn" id="generateBtn">Generate<br>Palettes</button>
+        
+            <div class="multi-select-item">
+                <label class="multi-select-label">
+                    Copy Multiple Palettes, <span id="selectionInfo">0/10</span>
+                </label>
+                <div class="multi-select-buttons-grid">
+                    <button class="multi-copy-btn words" id="multiWordsBtn" disabled>Words</button>
+                    <button class="multi-copy-btn letters" id="multiLettersBtn" disabled>Letters</button>
+                    <button class="clear-selection-btn">Clear</button>
+                    <button class="multi-copy-btn words secondary" id="multiWordsBtn2nd" disabled>Words 2nd</button>
+                    <button class="multi-copy-btn letters secondary" id="multiLettersBtn2nd" disabled>Letters 2nd</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="palette-grid" id="paletteGrid"></div>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="back-to-top" id="backToTop" title="Back to Top">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" />
+        </svg>
+    </div>
+    <script src="palettegenerator.js"></script>
+</body>
+
+</html>
