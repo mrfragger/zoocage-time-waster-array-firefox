@@ -2485,11 +2485,314 @@ async function saveMarkdownAsHTML() {
             return;
         }
     }
-
     showThemePickerModal();
 }
 
-function showThemePickerModal() {
+async function generateMarkdownHTMLWithThemes(title, code, highlightedTerms, cjkMode, themesToEmbed, activeThemeHref, notes) {    
+    const md = window.markdownit({
+        html: true, linkify: true, typographer: true, breaks: true,
+        highlight: function(str, lang) {
+            if (lang && hljs.getLanguage(lang)) {
+                try {
+                    return '<pre class="hljs"><code class="hljs language-' + lang + '">' +
+                        hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
+                        '</code></pre>';
+                } catch(e) {}
+            }
+            return '<pre class="hljs"><code class="hljs">' + md.utils.escapeHtml(str) + '</code></pre>';
+        }
+    }).enable('image');
+
+    md.validateLink = function(url) {
+        if (url.startsWith('data:image/')) return true;
+        const BAD = /^(vbscript|javascript|file|data):/;
+        const GOOD = /^data:image\/(gif|png|jpeg|webp|avif);/;
+        return !BAD.test(url.trim().toLowerCase()) || GOOD.test(url.trim().toLowerCase());
+    };
+
+    let rendered = md.render(code);
+
+    if (highlightedTerms && Object.keys(highlightedTerms).length > 0) {
+        rendered = applyHighlightsWithColors(rendered, highlightedTerms, cjkMode);
+    }
+
+    const tempMarkDiv = document.createElement('div');
+    tempMarkDiv.innerHTML = rendered;
+    tempMarkDiv.querySelectorAll('mark.zoocage-highlight').forEach(mark => {
+        const term = mark.textContent.toLowerCase();
+        const safeClass = 'zt-' + term.replace(/[^a-z0-9]/g, '_');
+        mark.classList.add(safeClass);
+        mark.removeAttribute('style');
+    });
+    rendered = tempMarkDiv.innerHTML;
+
+    const tempDivFreq = document.createElement('div');
+    tempDivFreq.innerHTML = rendered;
+    tempDivFreq.querySelectorAll('pre, code, h1, h2').forEach(el => el.remove());
+    let plainText = tempDivFreq.textContent || '';
+    plainText = plainText.replace(/^---[\s\S]*?---/m, '');
+    const freqWordsData = processWords(plainText);
+    const freqWordsJSON = JSON.stringify(freqWordsData);
+    const notesContent = notes || '';
+    const notesHTML = notesContent ? `<div id="notes-content"><p>${notesContent.replace(/\n/g, '<br>')}</p></div>` : '';
+
+
+    const activeThemeFile = activeThemeHref.split('/').pop();
+    const activeThemeObj = themesToEmbed.find(t => t.path === activeThemeHref || t.path.endsWith(activeThemeFile));
+    const activeThemeName = activeThemeObj ? activeThemeObj.name : themesToEmbed[0].name;
+
+    const testPre = document.createElement('pre');
+    testPre.className = 'hljs';
+    testPre.innerHTML = `<span class="hljs-keyword">k</span><span class="hljs-string">s</span><span class="hljs-title">t</span>`;
+    testPre.style.cssText = 'position:absolute;visibility:hidden;';
+    document.body.appendChild(testPre);
+
+    const preStyles = window.getComputedStyle(testPre);
+    const textColor = preStyles.color;
+    const keywordColor = window.getComputedStyle(testPre.querySelector('.hljs-keyword')).color;
+    const stringColor = window.getComputedStyle(testPre.querySelector('.hljs-string')).color;
+    const titleColor = window.getComputedStyle(testPre.querySelector('.hljs-title')).color;
+    document.body.removeChild(testPre);
+
+    const isDarkActive = activeThemeHref.includes('themesdark/');
+    const bodyBgColor = isDarkActive ? '#1e1e1e' : '#f5f5f5';
+
+    const { markdownFont = '0xProto' } = await browser.storage.local.get({ markdownFont: '0xProto' });
+
+    let allThemeCSS = '';
+    let themeBodyCSS = '';
+
+    for (const theme of themesToEmbed) {
+        try {
+            const resp = await fetch(browser.runtime.getURL(theme.path));
+            let css = await resp.text();
+            const colors = await extractThemeColors(css);
+            allThemeCSS += scopeThemeCSS(css, theme.name) + '\n';
+            const themeBg = colors.isLight ? '#f5f5f5' : '#1e1e1e';
+            themeBodyCSS += `
+body[data-theme="${theme.name}"] { background: ${themeBg}; color: ${colors.text}; }
+body[data-theme="${theme.name}"] h1,
+body[data-theme="${theme.name}"] h2,
+body[data-theme="${theme.name}"] h3,
+body[data-theme="${theme.name}"] h4,
+body[data-theme="${theme.name}"] h5,
+body[data-theme="${theme.name}"] h6 { color: ${colors.titleColor}; }
+body[data-theme="${theme.name}"] strong { color: ${colors.titleColor}; }
+body[data-theme="${theme.name}"] em { color: ${colors.strColor}; }
+body[data-theme="${theme.name}"] a { color: ${colors.kwColor}; }
+body[data-theme="${theme.name}"] a:hover { color: ${colors.strColor}; }
+body[data-theme="${theme.name}"] blockquote { border-left-color: ${colors.kwColor}; }
+body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
+`;
+        } catch(e) {
+            console.error('Failed to fetch theme:', theme.path, e);
+        }
+    }
+
+    const themeOptions = themesToEmbed.map(t =>
+        `<div class="theme-option" data-theme="${t.name}" style="padding:4px 10px;font-size:12px;color:#d4d4d4;cursor:pointer;white-space:nowrap;">${t.name}</div>`
+    ).join('');
+
+    const safeTitle = title.replace(/[<>:"/\\|?*]/g, '-');
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(title)}</title>
+    <style>
+        ${allThemeCSS}
+        ${themeBodyCSS}
+        body { font-family:'${markdownFont}',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; line-height:1.6; max-width:640px; margin:0 auto; padding:2rem; background:${bodyBgColor}; color:${textColor}; transition:background 0.2s,color 0.2s; }
+        p { color:inherit; }
+        img { max-width:100%; height:auto; display:block; margin:1rem 0; }
+        pre { padding:1rem; border-radius:4px; overflow-x:auto; margin:1rem 0; }
+        code { font-family:'${markdownFont}',Consolas,Monaco,'Courier New',monospace; font-size:0.9em; }
+        pre code { background:none !important; padding:0; }
+        :not(pre) > code { background:rgba(128,128,128,0.15); color:${stringColor}; padding:2px 6px; border-radius:3px; }
+        blockquote { border-left:4px solid ${keywordColor}; margin:1rem 0; padding-left:1rem; opacity:0.7; }
+        table { border-collapse:collapse; width:100%; margin:1rem 0; }
+        th,td { border:1px solid rgba(128,128,128,0.2); padding:0.5rem; text-align:left; }
+        th { background:rgba(128,128,128,0.07); font-weight:600; }
+        a { color:${keywordColor}; text-decoration:none; }
+        a:hover { color:${stringColor}; text-decoration:underline; }
+        h1,h2,h3,h4,h5,h6 { margin-top:1.5rem; margin-bottom:0.5rem; color:${titleColor}; }
+        h1 { font-size:1.25em; border-bottom:2px solid rgba(128,128,128,0.15); padding-bottom:0.3rem; }
+        h2 { font-size:1.5em; border-bottom:1px solid rgba(128,128,128,0.15); padding-bottom:0.3rem; }
+        h3 { font-size:1.25em; }
+        ul,ol { padding-left:2rem; }
+        li { margin:0.25rem 0; }
+        hr { border:none; border-top:1px solid rgba(128,128,128,0.15); margin:2rem 0; }
+        strong { color:${titleColor}; }
+        em { color:${stringColor}; }
+        .hide-highlights mark.zoocage-highlight { background-color:transparent !important; color:inherit !important; padding:0 !important; }
+        body.state-freq .zoocage-highlight { background-color:transparent !important; color:inherit !important; padding:0 !important; }
+        body.state-off .zoocage-highlight { background-color:transparent !important; color:inherit !important; padding:0 !important; }
+        #freq-panel { display:none; margin-top:3rem; padding-top:1.5rem; border-top:1px solid rgba(128,128,128,0.2); font-size:0.82rem; line-height:1.8; }
+        body.state-freq #freq-panel { display:block; }
+        #freq-panel .freq-label { color:#858585; font-size:0.8rem; margin-bottom:0.5rem; }
+        #freq-panel .freq-word { display:inline-block; margin-right:0.6rem; white-space:nowrap; }
+        #freq-panel .freq-count { color:#38d430; }
+        #freq-panel .fw { color:inherit; }
+        #zoocage-toolbar { position:fixed; top:10px; right:10px; display:flex; align-items:center; gap:6px; background:rgba(45,45,45,0.92); padding:6px 10px; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,0.3); z-index:1000; font-size:16px; backdrop-filter:blur(4px); }
+        #zoocage-toolbar button { background:none; border:none; cursor:pointer; font-size:16px; line-height:1; padding:2px; opacity:0.8; user-select:none; }
+        #zoocage-toolbar button:hover { opacity:1; }
+        @media print { #zoocage-toolbar { display:none; } #freq-panel { display:none; } }
+    </style>
+</head>
+<body data-theme="${activeThemeName}" class="state-highlights">
+    <div id="zoocage-toolbar">
+        <button id="toggle-state-btn" title="Highlights → Freq Words → Off">🟧</button>
+        <div id="themeSwitcher" style="position:relative;">
+            <div id="themeSelected" style="background:#3c3c3c;color:#d4d4d4;border:1px solid #555;border-radius:4px;padding:2px 8px;font-size:12px;cursor:pointer;user-select:none;min-width:120px;display:flex;justify-content:space-between;gap:6px;">${activeThemeName} <span>▼</span></div>
+            <div id="themeOptions" style="display:none;position:absolute;right:0;top:100%;margin-top:2px;background:#3c3c3c;border:1px solid #555;border-radius:4px;z-index:2000;max-height:200px;overflow-y:auto;min-width:160px;">${themeOptions}</div>
+        </div>
+    </div>
+    <div id="article-content">
+        ${rendered}
+    </div>
+    <div id="freq-panel">
+        <div class="freq-label">Word Frequencies - - ZooCage (Firefox extension)</div>
+        <div id="freq-words-list"></div>
+        ${notesContent ? '<div class="freq-label" style="margin-top:1rem;">Notes</div>' : ''}
+        ${notesHTML}
+    </div>
+    <script>
+    (function() {
+        const FREQ_WORDS = ${freqWordsJSON};
+
+        const themeSelected = document.getElementById('themeSelected');
+        const themeOptions = document.getElementById('themeOptions');
+        let themeCurrentIndex = -1;
+        let themeTypeBuffer = '';
+        let themeTypeTimer = null;
+        const themeOptionEls = Array.from(themeOptions.querySelectorAll('.theme-option'));
+
+        themeOptions.querySelectorAll('.theme-option').forEach(opt => {
+            opt.addEventListener('mouseenter', function() { this.style.background = '#0e639c'; });
+            opt.addEventListener('mouseleave', function() { this.style.background = ''; });
+        });
+
+        function highlightThemeOption(index) {
+            themeOptionEls.forEach((opt, i) => {
+                opt.style.background = i === index ? '#0e639c' : '';
+                opt.style.color = '#d4d4d4';
+            });
+            if (themeOptionEls[index]) {
+                themeOptionEls[index].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        function applyTheme(name) {
+            document.body.setAttribute('data-theme', name);
+            themeSelected.childNodes[0].textContent = name + ' ';
+            sessionStorage.setItem('zoocage-theme', name);
+        }
+
+        themeSelected.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isOpen = themeOptions.style.display !== 'none';
+            themeOptions.style.display = isOpen ? 'none' : 'block';
+            if (!isOpen) {
+                themeCurrentIndex = themeOptionEls.findIndex(o => o.dataset.theme === document.body.getAttribute('data-theme'));
+                if (themeCurrentIndex !== -1) highlightThemeOption(themeCurrentIndex);
+            }
+        });
+
+        themeOptionEls.forEach((opt, idx) => {
+            opt.addEventListener('click', function(e) {
+                e.stopPropagation();
+                applyTheme(this.dataset.theme);
+                themeOptions.style.display = 'none';
+            });
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (themeOptions.style.display === 'none') return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                themeCurrentIndex = (themeCurrentIndex + 1) % themeOptionEls.length;
+                highlightThemeOption(themeCurrentIndex);
+                applyTheme(themeOptionEls[themeCurrentIndex].dataset.theme);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                themeCurrentIndex = (themeCurrentIndex - 1 + themeOptionEls.length) % themeOptionEls.length;
+                highlightThemeOption(themeCurrentIndex);
+                applyTheme(themeOptionEls[themeCurrentIndex].dataset.theme);
+            } else if (e.key === 'Enter' || e.key === 'Escape') {
+                e.preventDefault();
+                themeOptions.style.display = 'none';
+            } else if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+                e.preventDefault();
+                clearTimeout(themeTypeTimer);
+                themeTypeBuffer += e.key.toLowerCase();
+                const matchIdx = themeOptionEls.findIndex(o => o.dataset.theme.toLowerCase().startsWith(themeTypeBuffer));
+                if (matchIdx !== -1) {
+                    themeCurrentIndex = matchIdx;
+                    highlightThemeOption(themeCurrentIndex);
+                    applyTheme(themeOptionEls[themeCurrentIndex].dataset.theme);
+                }
+                themeTypeTimer = setTimeout(() => { themeTypeBuffer = ''; }, 1000);
+            }
+        });
+
+        document.addEventListener('click', function() {
+            themeOptions.style.display = 'none';
+            themeTypeBuffer = '';
+        });
+
+        const savedTheme = sessionStorage.getItem('zoocage-theme');
+        if (savedTheme) {
+            applyTheme(savedTheme);
+        }
+
+        const states = ['state-highlights', 'state-freq', 'state-off'];
+        const icons = { 'state-highlights': '🟧', 'state-freq': '🟦', 'state-off': '⬛' };
+        let currentState = 'state-highlights';
+        const toggleBtn = document.getElementById('toggle-state-btn');
+
+        function applyState(state) {
+            currentState = state;
+            document.body.classList.remove(...states);
+            document.body.classList.add(currentState);
+            toggleBtn.textContent = icons[currentState];
+            sessionStorage.setItem('zoocage-state', currentState);
+        }
+
+        toggleBtn.addEventListener('click', function() {
+            const idx = states.indexOf(currentState);
+            applyState(states[(idx + 1) % states.length]);
+        });
+
+        const savedState = sessionStorage.getItem('zoocage-state');
+        if (savedState && states.includes(savedState)) {
+            applyState(savedState);
+        }
+
+        function buildFreqPanel() {
+            const list = document.getElementById('freq-words-list');
+            if (FREQ_WORDS.length === 0) {
+                list.textContent = 'No frequent words found.';
+                return;
+            }
+            FREQ_WORDS.forEach(({ word, freq }) => {
+                const span = document.createElement('span');
+                span.className = 'freq-word';
+                span.innerHTML = '<span class="freq-count">' + freq + '</span>&#x2007;<span class="fw">' + word + '</span>';
+                list.appendChild(span);
+            });
+        }
+
+        buildFreqPanel();
+
+    })();
+    <\/script>
+</body>
+</html>`;
+}
+
+function showThemePickerModal(callback) {
     const modal = document.getElementById('themePickerModal');
     const darkContainer = document.getElementById('themePickerDark');
     const lightContainer = document.getElementById('themePickerLight');
@@ -2651,21 +2954,25 @@ function showThemePickerModal() {
     });
 
 
-        newExport.addEventListener('click', async () => {
-            modal.style.display = 'none';
-        
-            const checkboxes = modal.querySelectorAll('input[type=checkbox]:checked');
-            const themesToEmbed = Array.from(checkboxes).map(cb => ({
-                path: cb.value,
-                name: cb.dataset.name,
-                isDark: cb.dataset.dark === '1'
-            }));
-        
-            browser.storage.local.set({
-                zoocageExportThemes: themesToEmbed.map(t => t.path)
-            });
+    newExport.addEventListener('click', async () => {
+        modal.style.display = 'none';
 
-        await doExportHTML(themesToEmbed, themeHref);
+        const checkboxes = modal.querySelectorAll('input[type=checkbox]:checked');
+        const themesToEmbed = Array.from(checkboxes).map(cb => ({
+            path: cb.value,
+            name: cb.dataset.name,
+            isDark: cb.dataset.dark === '1'
+        }));
+
+        browser.storage.local.set({
+            zoocageExportThemes: themesToEmbed.map(t => t.path)
+        });
+
+        if (callback) {
+            callback(themesToEmbed);
+        } else {
+            await doExportHTML(themesToEmbed, themeHref);
+        }
     });
 }
 
@@ -2819,6 +3126,11 @@ async function doExportHTML(themesToEmbed, activeThemeHref) {
     plainText = plainText.replace(/^---[\s\S]*?---/m, '');
     const freqWordsData = processWords(plainText);
     const freqWordsJSON = JSON.stringify(freqWordsData);
+    const notesContent = currentSnippetIndex !== null && snippets[currentSnippetIndex]
+        ? (snippets[currentSnippetIndex].notes || '')
+        : '';
+    const notesHTML = notesContent ? `<div id="notes-content"><p>${notesContent.replace(/\n/g, '<br>')}</p></div>` : '';
+    
 
     const activeThemeFile = activeThemeHref.split('/').pop();
     const activeIsDark = activeThemeHref.includes('themesdark/');
@@ -2972,6 +3284,16 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
         #freq-panel .freq-count { color: #38d430; }
         #freq-panel .fw { color: inherit; }
 
+        #notes-content {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(128,128,128,0.15);
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: inherit;
+            white-space: pre-wrap;
+        }        
+
         #zoocage-toolbar {
             position: fixed;
             top: 10px;
@@ -3021,6 +3343,8 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
     <div id="freq-panel">
         <div class="freq-label">Word Frequencies - ZooCage (Firefox extension)</div>
         <div id="freq-words-list"></div>
+        ${notesContent ? '<div class="freq-label" style="margin-top:1rem;">Notes</div>' : ''}   
+        ${notesHTML}
     </div>
 
     <script>
@@ -3121,7 +3445,6 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
         };
         let currentState = 'state-highlights';
         const toggleBtn = document.getElementById('toggle-state-btn');
-        const paletteBtn = document.getElementById('palette-btn');
 
         function applyState(state) {
             currentState = state;
@@ -6399,98 +6722,102 @@ async function zipSelectedToHTML() {
         showNotification('Please select at least 3 snippets', 'error');
         return;
     }
-    
-    const zip = new JSZip();
-    const avifCache = new AVIFCache();
-    await avifCache.init();
-    
-    const storageData = await browser.storage.local.get('cjkMode');
-    const cjkMode = storageData.cjkMode || false;
-    
-    showNotification(`Processing ${indices.length} snippets...`);
-    
-    const themeStylesheet = document.getElementById('themeStylesheet');
-    const isDarkTheme = themeStylesheet.href.includes('themesdark/');
-    
-    const indexEntries = [];
-    
-    for (let i = 0; i < indices.length; i++) {
-        const snippet = snippets[indices[i]];
-        const safeTitle = snippet.title.replace(/[<>:"/\\|?*]/g, '-');
-        const filename = `${String(i + 1).padStart(3, '0')}_${safeTitle}.html`;
-        
-        let code = snippet.code || '';
-        
-        const cacheRefs = code.match(/avif-cache:\/\/([a-f0-9]+)/g) || [];
-        const imageDataUrls = [];
-        
-        if (cacheRefs.length > 0) {
-            for (const ref of cacheRefs) {
-                const hash = ref.replace('avif-cache://', '').split('#')[0];
-                const blob = await avifCache.get(hash);
-                
-                if (blob) {
-                    const arrayBuffer = await blob.arrayBuffer();
-                    const uint8Array = new Uint8Array(arrayBuffer);
-                    let binary = '';
-                    for (let i = 0; i < uint8Array.length; i++) {
-                        binary += String.fromCharCode(uint8Array[i]);
+
+    showThemePickerModal(async (themesToEmbed) => {
+        const zip = new JSZip();
+        const avifCache = new AVIFCache();
+        await avifCache.init();
+
+        const storageData = await browser.storage.local.get('cjkMode');
+        const cjkMode = storageData.cjkMode || false;
+
+        showNotification(`Processing ${indices.length} snippets...`);
+
+        const themeStylesheet = document.getElementById('themeStylesheet');
+        const activeThemeHref = themeStylesheet.getAttribute('href');
+
+        const indexEntries = [];
+
+        for (let i = 0; i < indices.length; i++) {
+            const snippet = snippets[indices[i]];
+            const safeTitle = snippet.title.replace(/[<>:"/\\|?*]/g, '-');
+            const filename = `${String(i + 1).padStart(3, '0')}_${safeTitle}.html`;
+
+            let code = snippet.code || '';
+
+            const cacheRefs = code.match(/avif-cache:\/\/([a-f0-9]+)/g) || [];
+            const imageDataUrls = [];
+
+            if (cacheRefs.length > 0) {
+                for (const ref of cacheRefs) {
+                    const hash = ref.replace('avif-cache://', '').split('#')[0];
+                    const blob = await avifCache.get(hash);
+
+                    if (blob) {
+                        const arrayBuffer = await blob.arrayBuffer();
+                        const uint8Array = new Uint8Array(arrayBuffer);
+                        let binary = '';
+                        for (let j = 0; j < uint8Array.length; j++) {
+                            binary += String.fromCharCode(uint8Array[j]);
+                        }
+                        const base64 = btoa(binary);
+                        const dataUrl = `data:image/avif;base64,${base64}`;
+
+                        if (imageDataUrls.length < 3) {
+                            imageDataUrls.push(dataUrl);
+                        }
+
+                        code = code.replace(new RegExp(escapeRegex(ref), 'g'), dataUrl);
                     }
-                    const base64 = btoa(binary);
-                    const dataUrl = `data:image/avif;base64,${base64}`;
-                    
-                    if (imageDataUrls.length < 3) {
-                        imageDataUrls.push(dataUrl);
-                    }
-                    
-                    code = code.replace(new RegExp(ref, 'g'), dataUrl);
                 }
             }
-        }
-        
-        const isMarkdown = snippet.language === 'markdown';
 
-        let htmlContent;
-        if (isMarkdown) {
-            htmlContent = await generateMarkdownHTML(snippet.title, code, snippet.highlightedTerms, cjkMode);
-        } else {
-            htmlContent = await generateCodeHTML(snippet.title, snippet.language, code);
+            const isMarkdown = snippet.language === 'markdown';
+
+            let htmlContent;
+            if (isMarkdown) {
+                htmlContent = await generateMarkdownHTMLWithThemes(
+                    snippet.title, code, snippet.highlightedTerms || {},
+                    snippet.cjkMode || false, themesToEmbed, activeThemeHref,
+                    snippet.notes || ''
+                );
+            } else {
+                htmlContent = await generateCodeHTML(snippet.title, snippet.language, code);
+            }
+
+            zip.file(filename, htmlContent);
+
+            const sizeBytes = new Blob([htmlContent]).size;
+
+            indexEntries.push({
+                filename: filename,
+                title: snippet.title,
+                language: snippet.language,
+                imageCount: cacheRefs.length,
+                images: imageDataUrls,
+                sizeBytes: sizeBytes
+            });
         }
-        
-        zip.file(filename, htmlContent);
-        
-        const sizeBytes = new Blob([htmlContent]).size;
-        
-        indexEntries.push({
-            filename: filename,
-            title: snippet.title,
-            language: snippet.language,
-            imageCount: cacheRefs.length,
-            images: imageDataUrls,
-            sizeBytes: sizeBytes
+
+        const indexHTML = generateIndexHTML(indexEntries);
+        zip.file('000_index.html', indexHTML);
+
+        const content = await zip.generateAsync({
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 9 }
         });
-    }
-    
-    const indexHTML = generateIndexHTML(indexEntries);
-    zip.file('000_index.html', indexHTML);
-    
-    const content = await zip.generateAsync({
-        type: 'blob',
-        compression: 'DEFLATE',
-        compressionOptions: {
-            level: 9
-        }
+
+        const url = URL.createObjectURL(content);
+        const timestamp = new Date().toISOString().split('T')[0];
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `zoocage-snippets-${timestamp}.zip`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        showNotification(`Exported ${indices.length} snippet${indices.length !== 1 ? 's' : ''} to html!`);
     });
-    
-    const url = URL.createObjectURL(content);
-    const timestamp = new Date().toISOString().split('T')[0];
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `zoocage-snippets-${timestamp}.zip`;
-    link.click();
-    URL.revokeObjectURL(url);
-    
-    showNotification(`Exported ${indices.length} snippet${indices.length !== 1 ? 's' : ''} to html!`);
 }
 
 function generateIndexHTML(entries) {
