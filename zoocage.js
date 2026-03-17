@@ -2488,7 +2488,7 @@ async function saveMarkdownAsHTML() {
     showThemePickerModal();
 }
 
-async function generateMarkdownHTMLWithThemes(title, code, highlightedTerms, cjkMode, themesToEmbed, activeThemeHref, notes) {    
+async function generateMarkdownHTMLWithThemes(title, code, highlightedTerms, cjkMode, themesToEmbed, activeThemeHref, notes, exportNotes = true) {
     const md = window.markdownit({
         html: true, linkify: true, typographer: true, breaks: true,
         highlight: function(str, lang) {
@@ -2533,7 +2533,7 @@ async function generateMarkdownHTMLWithThemes(title, code, highlightedTerms, cjk
     plainText = plainText.replace(/^---[\s\S]*?---/m, '');
     const freqWordsData = processWords(plainText);
     const freqWordsJSON = JSON.stringify(freqWordsData);
-    const notesContent = notes || '';
+    const notesContent = exportNotes ? (notes || '') : '';
     const notesHTML = notesContent ? `<div id="notes-content"><p>${notesContent.replace(/\n/g, '<br>')}</p></div>` : '';
 
 
@@ -2866,6 +2866,9 @@ function showThemePickerModal(callback) {
 
     let selectedThemes = new Set();
 
+    browser.storage.local.get({ zoocageExportNotes: true }).then(({ zoocageExportNotes }) => {
+            document.getElementById('exportNotesCheckbox').checked = zoocageExportNotes;
+        });
     browser.storage.local.get({ zoocageExportThemes: [] }).then(({ zoocageExportThemes }) => {
         if (zoocageExportThemes.length > 0) {
             const allCheckboxes = modal.querySelectorAll('input[type=checkbox]');
@@ -2958,20 +2961,23 @@ function showThemePickerModal(callback) {
         modal.style.display = 'none';
 
         const checkboxes = modal.querySelectorAll('input[type=checkbox]:checked');
-        const themesToEmbed = Array.from(checkboxes).map(cb => ({
+        const themesToEmbed = Array.from(modal.querySelectorAll('#themePickerDark input:checked, #themePickerLight input:checked')).map(cb => ({
             path: cb.value,
             name: cb.dataset.name,
             isDark: cb.dataset.dark === '1'
         }));
 
+        const exportNotes = document.getElementById('exportNotesCheckbox').checked;
+
         browser.storage.local.set({
-            zoocageExportThemes: themesToEmbed.map(t => t.path)
+            zoocageExportThemes: themesToEmbed.map(t => t.path),
+            zoocageExportNotes: exportNotes
         });
 
         if (callback) {
-            callback(themesToEmbed);
+            callback(themesToEmbed, exportNotes);
         } else {
-            await doExportHTML(themesToEmbed, themeHref);
+            await doExportHTML(themesToEmbed, themeHref, exportNotes);
         }
     });
 }
@@ -3048,7 +3054,7 @@ async function extractThemeColors(cssText) {
     });
 }
 
-async function doExportHTML(themesToEmbed, activeThemeHref) {
+async function doExportHTML(themesToEmbed, activeThemeHref, exportNotes = true) {
     const title = document.getElementById('snippetTitle').value || 'markdown-export';
     const safeTitle = title.replace(/[<>:"/\\|?*]/g, '-');
 
@@ -3126,9 +3132,9 @@ async function doExportHTML(themesToEmbed, activeThemeHref) {
     plainText = plainText.replace(/^---[\s\S]*?---/m, '');
     const freqWordsData = processWords(plainText);
     const freqWordsJSON = JSON.stringify(freqWordsData);
-    const notesContent = currentSnippetIndex !== null && snippets[currentSnippetIndex]
-        ? (snippets[currentSnippetIndex].notes || '')
-        : '';
+    const notesContent = exportNotes && currentSnippetIndex !== null && snippets[currentSnippetIndex]
+            ? (snippets[currentSnippetIndex].notes || '')
+            : '';
     const notesHTML = notesContent ? `<div id="notes-content"><p>${notesContent.replace(/\n/g, '<br>')}</p></div>` : '';
     
 
@@ -6723,7 +6729,7 @@ async function zipSelectedToHTML() {
         return;
     }
 
-    showThemePickerModal(async (themesToEmbed) => {
+    showThemePickerModal(async (themesToEmbed, exportNotes) => {    
         const zip = new JSZip();
         const avifCache = new AVIFCache();
         await avifCache.init();
@@ -6779,7 +6785,7 @@ async function zipSelectedToHTML() {
                 htmlContent = await generateMarkdownHTMLWithThemes(
                     snippet.title, code, snippet.highlightedTerms || {},
                     snippet.cjkMode || false, themesToEmbed, activeThemeHref,
-                    snippet.notes || ''
+                    snippet.notes || '', exportNotes
                 );
             } else {
                 htmlContent = await generateCodeHTML(snippet.title, snippet.language, code);

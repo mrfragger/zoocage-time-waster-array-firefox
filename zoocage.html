@@ -272,10 +272,14 @@
         <div style="color:#ff9944; font-size:0.85rem; font-weight:600; margin-bottom:0.5rem;">Light Themes</div>
         <div id="themePickerLight" style="display:flex; flex-direction:column; gap:0.25rem; max-height:300px; overflow-y:auto;"></div>
       </div>
-    </div>
-    <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
-      <button class="secondary" id="themePickerCancel">Cancel</button>
-      <button id="themePickerExport">Export HTML</button>
+      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;">
+          <input type="checkbox" id="exportNotesCheckbox" checked style="width:16px;height:16px;accent-color:#4ec9b0;cursor:pointer;">
+          <label for="exportNotesCheckbox" style="color:#d4d4d4;font-size:0.85rem;cursor:pointer;">Export Notes</label>
+      </div>
+      <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+        <button class="secondary" id="themePickerCancel">Cancel</button>
+        <button id="themePickerExport">Export HTML</button>
+      </div>
     </div>
   </div>
 </div>
