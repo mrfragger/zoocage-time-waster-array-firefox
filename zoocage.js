@@ -1396,6 +1396,7 @@ function importSourceFiles(event) {
         'lua': 'lua',
         'md': 'markdown',
         'markdown': 'markdown',
+        'odin': 'odin',
         'java': 'java',
         'cpp': 'cpp',
         'cc': 'cpp',
@@ -1439,8 +1440,13 @@ function importSourceFiles(event) {
         'mm': 'objectivec',
         'wasm': 'wasm',
         'wat': 'wasm',
-        'odin': 'c',
-        'zig': 'c',
+        'zig': 'zig',
+        'ex': 'elixir',
+        'exs': 'elixir',
+        'ps1': 'powershell',
+        'psm1': 'powershell',
+        'psd1': 'powershell',
+        'toml': 'ini',
     };
     
     const skipExtensions = new Set([
