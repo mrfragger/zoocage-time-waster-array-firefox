@@ -258,7 +258,7 @@ function showNotification(message, type = 'success') {
     }, 3000);
 }
 
-const availableLanguages = ['asciidoc', 'awk', 'bash', 'c', 'cmake', 'cpp', 'csharp', 'css', 'dart', 'diff', 'go', 'ini', 'java', 'javascript', 'json', 'kotlin', 'lua', 'makefile', 'markdown', 'objectivec', 'perl', 'php', 'plaintext', 'python', 'ruby', 'rust', 'shell', 'sql', 'swift', 'typescript', 'wasm', 'xml', 'yaml'];
+const availableLanguages = ['asciidoc', 'awk', 'bash', 'c', 'cmake', 'cpp', 'csharp', 'css', 'dart', 'diff', 'go', 'ini', 'java', 'javascript', 'json', 'kotlin', 'lua', 'makefile', 'markdown', 'objectivec', 'odin', 'perl', 'php', 'plaintext', 'python', 'ruby', 'rust', 'shell', 'sql', 'swift', 'typescript', 'wasm', 'xml', 'yaml', 'zig',];
 
 let snippets = [];
 let currentSnippetIndex = null;
@@ -1438,7 +1438,9 @@ function importSourceFiles(event) {
         'm': 'objectivec',
         'mm': 'objectivec',
         'wasm': 'wasm',
-        'wat': 'wasm'
+        'wat': 'wasm',
+        'odin': 'c',
+        'zig': 'c',
     };
     
     const skipExtensions = new Set([
