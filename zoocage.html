@@ -146,17 +146,22 @@
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                         <h3>Notes</h3>
                         <button class="clear-btn" id="copyNotes">Copy</button>
-                        <button class="clear-btn" id="pasteNotes" title="Ctrl+v / ⌘v">Paste</button>
+                        <button class="clear-btn" id="pasteNotes">Paste</button>
                         <button class="clear-btn" id="clearNotes" title="Clear notes">Clear</button>
                     </div>
                     <div class="notes-actions">
+                        <div class="dropdown" tabindex="0" id="notesLanguageSelector" style="min-width:120px;">
+                            <div class="selected">Plaintext</div>
+                            <div class="options"></div>
+                        </div>
                         <button class="secondary scroll-btn" id="scrollToTop">↑ Top</button>
+                        <button id="saveSnippet2">Save</button>
+                        <button class="secondary" id="copyCode2">Copy</button>
+                        <button class="danger" id="deleteSnippet2">Delete</button>
                     </div>
                 </div>
                 <textarea id="snippetNotes" placeholder="Add notes, output examples, or change logs..."></textarea>
             </div>
-        </div>
-    </div>
 </main>
 
 <div id="markdownSettingsModal" style="display: none;">

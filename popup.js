@@ -2771,6 +2771,34 @@ document.getElementById('highlightTermsInput')?.addEventListener('keypress', asy
     input.value = '';
 });
 
+document.getElementById('freqHighlightBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('freqHighlightBtn');
+    btn.textContent = '⏳';
+    btn.disabled = true;
+
+    try {
+        const response = await browser.runtime.sendMessage({ type: 'getPageFreqText' });
+        
+        if (response && response.text) {
+            const freqWords = processWords(response.text);
+                
+                if (freqWords.length === 0) {
+                    btn.textContent = '📊';
+                    btn.disabled = false;
+                    return;
+                }
+                
+                const words = freqWords.map(f => f.word).join(' ');
+                await addHighlightTerms(words);
+        }
+    } catch(e) {
+        console.error('Freq highlight error:', e);
+    }
+
+    btn.textContent = '📊';
+    btn.disabled = false;
+});
+
 document.getElementById('addHighlightBtn')?.addEventListener('click', async () => {
     const input = document.getElementById('highlightTermsInput');
     await addHighlightTerms(input.value.trim());
@@ -3645,6 +3673,62 @@ function removeCollapsedStyles() {
         body.style.width = '';
         body.style.minWidth = '';
     }
+}
+
+function processWords(text) {
+    text = text.replace(/['']/g, "'");
+    const cleanText = text.replace(/[^A-Za-z'\s]/g, ' ').toLowerCase();
+    const rawWords = cleanText.split(/\s+/);
+    const words = [];
+    for (const word of rawWords) {
+        const trimmed = word.replace(/^'+|'+$/g, '');
+        if (trimmed.length >= 4) words.push(trimmed);
+    }
+    const wordFreq = {};
+    words.forEach(w => { wordFreq[w] = (wordFreq[w] || 0) + 1; });
+
+    const commonWords = new Set([
+        "about","actually","after","all","also","always","and","another","any","are",
+        "ask","away","avif","because","been","before","but","blog","cache","came","can",
+        "come","could","day","did","didn","does","doing","even","every","everything",
+        "find","for","from","get","going","got","had","has","have","her","here","him",
+        "his","how","into","just","know","let","like","look","made","make","many","may",
+        "maybe","mean","more","most","much","need","news","never","nor","not","now",
+        "okay","one","only","other","our","out","over","put","rather","really","right",
+        "said","same","say","saying","says","see","she","some","something","sort","still",
+        "sure","take","than","that","the","their","them","then","there","these","they",
+        "thing","things","think","this","those","through","too","two","until","upon",
+        "very","want","was","way","well","were","what","when","where","which","who",
+        "why","will","with","would","yeah","yet","you","your","yourself","each",
+        "amongst","except","should","whom","new","both","best","first","yes","great",
+        "three","back","next","comes","between","beautiful","better","whatever","went",
+        "last","gave","its","four","others","around","clear","understand","word",
+        "within","keep","though","goes","however","based","means","used","such","far",
+        "part","call","against","stop","become","became","down","lot","clearly","form",
+        "known","off","else","anyone","without","end","try","own","brought","knows",
+        "due","given","someone","today","bring","already","might","use","either",
+        "during","themselves","again","days","cannot","important","able","coming","left",
+        "having","little","third","done","whether","wants","once","becomes","exactly",
+        "sees","later","ones","absolute","absolutely","cause","long","takes","ago",
+        "anyway","tell","asked","time","type","being","called","order","course","place",
+        "certain","himself","different","proper","talk","similar","give","nothing",
+        "correct","mention","happened","talked","hear","greatest","heard","especially",
+        "seen","wanted","talking","true","happen","fell","complete","times","high",
+        "past","close","read","show","greater","set","year","everywhere","taken","self",
+        "totally","under","gives","makes","took","brings","years","https","http","www",
+        "com","org","net","edu"
+    ]);
+
+    Object.keys(wordFreq).forEach(w => {
+        if (commonWords.has(w)) delete wordFreq[w];
+    });
+
+    const output = [];
+    for (const [word, freq] of Object.entries(wordFreq)) {
+        if (freq >= 4) output.push({ word, freq });
+    }
+    output.sort((a, b) => b.freq - a.freq);
+    return output.slice(0, 50);
 }
 
 function toggleSettingsCollapse() {

@@ -3118,10 +3118,6 @@ async function doExportHTML(themesToEmbed, activeThemeHref, exportNotes = true) 
             const term = mark.textContent.toLowerCase();
             const safeClass = 'zt-' + term.replace(/[^a-z0-9]/g, '_');
             mark.classList.add(safeClass);
-            mark.style.backgroundColor = '';
-            mark.style.color = '';
-            mark.style.padding = '';
-            mark.removeAttribute('style');
         });
         rendered = tempMarkDiv.innerHTML;
 
@@ -7077,7 +7073,7 @@ async function generateMarkdownHTML(title, markdownCode, highlightedTerms = {}, 
         }
         
         h1 { 
-            font-size: 2em; 
+            font-size: 1.6em; 
             border-bottom: 2px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}; 
             padding-bottom: 0.3rem; 
         }

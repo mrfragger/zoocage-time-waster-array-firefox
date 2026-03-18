@@ -809,7 +809,6 @@ browser.contextMenus.create({
     contexts: ["all"]
 });
 
-
 async function updateContextMenus(tab) {
     const { hoverZoomEnabled = false, grayscaleEnabled = false } = 
         await browser.storage.local.get(['hoverZoomEnabled', 'grayscaleEnabled']);
@@ -884,6 +883,49 @@ browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
 const pendingMarkdownData = new Map();
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'getPageFreqText') {
+        (async () => {
+            try {
+                const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+                if (!tabs[0]) { sendResponse({ error: 'No active tab' }); return; }
+                
+                await browser.tabs.executeScript(tabs[0].id, { file: 'defuddle.js' });
+                await browser.tabs.executeScript(tabs[0].id, { file: 'turndown.js' });
+
+                const results = await browser.tabs.executeScript(tabs[0].id, {
+                    code: `
+                        (function() {
+                            try {
+                                const defuddle = new Defuddle(document, { url: document.URL, removeImages: true });
+                                const article = defuddle.parse();
+                                if (!article || !article.content) return '';
+                                
+                                const turndownService = new TurndownService({ headingStyle: 'atx' });
+                                turndownService.remove(['script', 'style', 'noscript', 'iframe', 'img', 'nav', 'aside', 'figure']);
+                                let markdown = turndownService.turndown(article.content);
+                                
+                                markdown = markdown.replace(/^---[\\s\\S]*?---/m, '');
+                                markdown = markdown.replace(/^#{1,6}\\s+.*/gm, '');
+                                markdown = markdown.replace(/!\\[.*?\\]\\(.*?\\)/g, '');
+                                markdown = markdown.replace(/\\[([^\\]]+)\\]\\([^)]+\\)/g, '$1');
+                                markdown = markdown.replace(/[*_\`#>|]/g, ' ');
+                                
+                                return markdown;
+                            } catch(e) {
+                                return '';
+                            }
+                        })()
+                    `
+                });
+                
+                sendResponse({ text: results[0] || '' });
+            } catch(e) {
+                sendResponse({ error: e.message });
+            }
+        })();
+        return true;
+    }
+
     if (message.type === 'storeAVIFCache') {
         (async () => {
             try {
@@ -939,7 +981,6 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 const avifCache = new AVIFCache();
                 await avifCache.init();
                 const blob = await avifCache.get(message.hash);
-                
                 
                 if (blob && blob instanceof Blob) {
                     const arrayBuffer = await blob.arrayBuffer();
