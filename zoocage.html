@@ -52,7 +52,7 @@
             <button class="secondary" id="deleteSnippet">Delete</button>
             <button class="secondary" id="toggleWrap">Unwrap</button>
             <button id="saveSnippet" title="Ctrl+s / ⌘s">Save</button>
-            <button class="saveSnippet" id="saveNoImagesBtnTop" style="display: none;">Save ❌🌄</button>
+            <button class="saveSnippet" id="saveNoImagesBtnTop">Save ❌🌄</button>
             <button class="saveSnippet" id="saveHtmlBtnTop" style="display: none;">Save html</button>
             <button class="secondary scroll-btn" id="scrollToNotes">↓ Notes</button>
             <div id="toggleMarkdownHighlights" style="display: inline-block; margin-left: 1px; font-size: 20px; cursor: pointer; user-select: none; opacity: 1; transition: opacity 0.2s;" title="Toggle Highlights">
@@ -94,43 +94,42 @@
             <div style="text-align: left; max-width: 850px; overflow-y: auto; margin: 0 auto;">
                 <ul style="line-height: 1.8; margin-bottom: 2rem;">
                    <li>
-                     <span style="color: #00b9e5;">Asciidoc</span>, 
-                     <span style="color: #38d430;">Awk</span>, 
-                     <span style="color: #e3e82b;">Bash</span>, 
-                     <span style="color: #ffab4d;">C</span>, 
-                     <span style="color: #ff3f3f;">Cmake</span>, 
-                     <span style="color: #ef2bc1;">C++</span>, 
-                     <span style="color: #bc13fe;">C#</span>, 
-                     <span style="color: #00b9e5;">CSS</span>, 
-                     <span style="color: #38d430;">Dart</span>, 
-                     <span style="color: #e3e82b;">Diff</span>, 
-                     <span style="color: #ffab4d;">Elixir</span>, 
-                     <span style="color: #ff3f3f;">Go</span>, 
-                     <span style="color: #ef2bc1;">ini</span>, 
-                     <span style="color: #bc13fe;">Java</span>, 
-                     <span style="color: #00b9e5;">Javascript</span>, 
-                     <span style="color: #38d430;">JSON</span>, 
-                     <span style="color: #e3e82b;">Kotlin</span>, 
-                     <span style="color: #ffab4d;">Lua</span>, 
-                     <span style="color: #ff3f3f;">Makefile</span>, 
-                     <span style="color: #ef2bc1;">Markdown</span>, 
-                     <span style="color: #bc13fe;">Objectivec</span>, 
-                     <span style="color: #00b9e5;">Odin</span>, 
-                     <span style="color: #38d430;">Perl</span>, 
-                     <span style="color: #e3e82b;">PHP</span>, 
-                     <span style="color: #ffab4d;">Plaintext</span>, 
-                     <span style="color: #ff3f3f;">PowerShell</span>, 
-                     <span style="color: #ef2bc1;">Python</span>, 
-                     <span style="color: #bc13fe;">Ruby</span>, 
-                     <span style="color: #00b9e5;">Rust</span>, 
-                     <span style="color: #38d430;">Shell</span>, 
-                     <span style="color: #e3e82b;">SQL</span>, 
-                     <span style="color: #ffab4d;">Swift</span>, 
-                     <span style="color: #ff3f3f;">TOML</span>, 
-                     <span style="color: #ef2bc1;">Typescript</span>, 
-                     <span style="color: #bc13fe;">Wasm</span>, 
-                     <span style="color: #00b9e5;">XML</span>, 
-                     <span style="color: #38d430;">Yaml</span>, 
+                     <span style="color: #00b9e5;">Asciidoc</span>,
+                     <span style="color: #38d430;">Awk</span>,
+                     <span style="color: #e3e82b;">Bash</span>,
+                     <span style="color: #ffab4d;">C</span>,
+                     <span style="color: #ff3f3f;">Cmake</span>,
+                     <span style="color: #ef2bc1;">C++</span>,
+                     <span style="color: #bc13fe;">C#</span>,
+                     <span style="color: #00b9e5;">CSS</span>,
+                     <span style="color: #38d430;">Dart</span>,
+                     <span style="color: #e3e82b;">Diff</span>,
+                     <span style="color: #ff3f3f;">Go</span>,
+                     <span style="color: #ef2bc1;">ini</span>,
+                     <span style="color: #bc13fe;">Java</span>,
+                     <span style="color: #00b9e5;">Javascript</span>,
+                     <span style="color: #38d430;">JSON</span>,
+                     <span style="color: #e3e82b;">Kotlin</span>,
+                     <span style="color: #ffab4d;">Lua</span>,
+                     <span style="color: #ff3f3f;">Makefile</span>,
+                     <span style="color: #ef2bc1;">Markdown</span>,
+                     <span style="color: #bc13fe;">Objectivec</span>,
+                     <span style="color: #00b9e5;">Odin</span>,
+                     <span style="color: #38d430;">Perl</span>,
+                     <span style="color: #e3e82b;">PHP</span>,
+                     <span style="color: #ffab4d;">Plaintext</span>,
+                     <span style="color: #ff3f3f;">PowerShell</span>,
+                     <span style="color: #ef2bc1;">Python</span>,
+                     <span style="color: #bc13fe;">Ruby</span>,
+                     <span style="color: #00b9e5;">Rust</span>,
+                     <span style="color: #38d430;">Shell</span>,
+                     <span style="color: #e3e82b;">SQL</span>,
+                     <span style="color: #ffab4d;">Swift</span>,
+                     <span style="color: #ff3f3f;">TOML</span>,
+                     <span style="color: #ef2bc1;">Typescript</span>,
+                     <span style="color: #bc13fe;">Wasm</span>,
+                     <span style="color: #00b9e5;">XML</span>,
+                     <span style="color: #38d430;">Yaml</span>,
                      <span style="color: #e3e82b;">Zig</span>
                    </li>
                     <li><span style="color: #00b9e5;">Fuzzy and AND, OR, NOT search:</span></span> No bm25 sorted relevant results but still relevant results and extremely fast index build  <a href="https://github.com/nextapps-de/flexsearch" target="_blank" style="color: #ef2bc1; text-decoration: none;">flexsearch.js</a></li>
@@ -144,7 +143,7 @@
                     <li><span style="color: #38d430;">CSV:</span></span> View table, cell editing, column sorting, columns/rows copy/delete, delimiters <span style="color: #38d430;">, ; | : tab</span> <a href="http://papaparse.com/" target="_blank" style="color: #ffab4d; text-decoration: none; ">papaparse.com</a></li>
                     <li><span style="color: #e3e82b;">VTT/SRT support:</span></span> Syntax highlighting for subtitle files</li>
                     <li><span style="color: #ffab4d;">Auto-detection:</span></span> Language is detected automatically from code</li>
-                    <li><span style="color: #ff3f3f;">Syntax highlighting:</span></span> <a href="https://highlightjs.org/" target="_blank" style="color: #38d430; text-decoration: none; ">highlightjs.org</a> 38 languages with 50+ color themes</li>
+                    <li><span style="color: #ff3f3f;">Syntax highlighting:</span></span> <a href="https://highlightjs.org/" target="_blank" style="color: #38d430; text-decoration: none; ">highlightjs.org</a> 37 languages with 50+ color themes</li>
                     <li><span style="color: #ef2bc1;">Tile Case:</span></span> people of the web <span style="color: #ffab4d;">--></span><span style="color: #ff3f3f;"> P</span>eople of the <span style="color: #ff3f3f;">W</span>eb</li>
                 </ul>
             </div>
@@ -206,7 +205,7 @@
 <div id="markdownSettingsModal" style="display: none;">
     <div class="modal-overlay"></div>
     <div class="modal-content">
-        
+
         <div class="settings-section">
             <label class="setting-option">
                 <input type="checkbox" id="includeTitle" checked>
@@ -225,14 +224,14 @@
                 <span>Include Date</span>
             </label>
         </div>
-        
+
         <div class="settings-section">
             <label class="setting-option">
                 <input type="checkbox" id="preserveTableLinebreaks">
                 <span>Preserve line breaks in table cells (uses &lt;br&gt; tags)</span>
             </label>
         </div>
-        
+
         <div class="settings-section">
             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Markdown Font</label>
             <select id="markdownFontSelect" style="width: 100%; padding: 0.5rem; border: 1px solid #3e3e42; border-radius: 4px; background: #3c3c3c; color: #d4d4d4; font-size: 0.9rem;">
@@ -242,7 +241,7 @@
                 <option value="Courier New">Courier New</option>
             </select>
         </div>
-        
+
         <div class="modal-actions">
             <button id="saveMarkdownSettings">Save Settings</button>
             <button class="secondary" id="closeMarkdownSettings">Cancel</button>
@@ -261,7 +260,6 @@
 <script src="languages/css.min.js"></script>
 <script src="languages/dart.min.js"></script>
 <script src="languages/diff.min.js"></script>
-<script src="languages/elixir.min.js"></script>
 <script src="languages/go.min.js"></script>
 <script src="languages/ini.min.js"></script>
 <script src="languages/java.min.js"></script>

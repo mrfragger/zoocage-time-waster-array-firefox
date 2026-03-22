@@ -1,9 +1,9 @@
 {
   "manifest_version": 2,
   "name": "ZooCage Time Waster Array",
-  "version": "1.4",
+  "version": "1.5",
   "description": "Track time spent browsing and watching media on YouTube, etc., Calculator, Unit Conversion, Dark Mode, Content Blocking, Zap, Blur and Invert Elements, Multi-Term Page Highlighter, Blur Images/Videos, Block Sites, Allow Right-click, Color Palette Generator, Join Images, avif Masonry Gallery, Code Snippets, Clip to Markdown, Max Tab Limit, Hover Image Zoom, Grayscale, YouTube default resolution and hide items.",
-  
+
   "icons": {
     "48": "icon.svg",
     "96": "icon.svg"
@@ -21,14 +21,14 @@
   ],
 
   "commands": {
-      "clip-markdown": {
-        "suggested_key": {
-          "default": "Ctrl+Shift+X",
-          "mac": "Command+Shift+X"
-        },
-        "description": "Clip as Markdown"
-      }
-    },
+    "clip-markdown": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+X",
+        "mac": "Command+Shift+X"
+      },
+      "description": "Clip as Markdown"
+    }
+  },
 
   "background": {
     "scripts": ["tracker.js"],
@@ -36,26 +36,30 @@
   },
 
   "content_scripts": [
-      {
-          "matches": ["<all_urls>"],
-          "js": ["blur-element.js"],
-          "run_at": "document_idle"
-      },
-      {
-          "matches": ["<all_urls>"],
-          "js": ["blur-images-videos.js"],
-          "run_at": "document_start"
-      },
-      {
-          "matches": ["*://*.youtube.com/*", "*://*.youtube-nocookie.com/*", "*://*.youtubeeducation.com/*"],
-          "js": ["youtube-tweaks.js"],
-          "run_at": "document_start"
-      },
-      {
-          "matches": ["<all_urls>"],
-          "js": ["flexsearch.es5.min.js","minisearch.min.js","content.js"],
-          "run_at": "document_start"
-      }
+    {
+      "matches": ["<all_urls>"],
+      "js": ["blur-element.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["blur-images-videos.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*",
+        "*://*.youtubeeducation.com/*"
+      ],
+      "js": ["youtube-tweaks.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["flexsearch.es5.min.js", "minisearch.min.js", "content.js"],
+      "run_at": "document_start"
+    }
   ],
 
   "browser_action": {
@@ -65,18 +69,18 @@
   },
 
   "web_accessible_resources": [
-      "avif_enc.wasm",
-      "avif_enc.js",
-      "avif-encoder.js",
-      "fflate.min.js",
-      "defuddle.js",
-      "turndown.js",
-      "markdown-clip.js",
-      "diff.min.js",
-      "blocked.html",
-      "masonryavif.html",
-      "zoocage.html",
-      "fonts/0xProto-Regular.woff2"
+    "avif_enc.wasm",
+    "avif_enc.js",
+    "avif-encoder.js",
+    "fflate.min.js",
+    "defuddle.js",
+    "turndown.js",
+    "markdown-clip.js",
+    "diff.min.js",
+    "blocked.html",
+    "masonryavif.html",
+    "zoocage.html",
+    "fonts/0xProto-Regular.woff2"
   ],
 
   "content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
