@@ -7,7 +7,8 @@
 body {
     width: 600px;
     min-height: 100px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
     font-size: 14px;
     background-color: var(--bg-color);
     color: var(--text-color);
@@ -41,7 +42,7 @@ body {
         margin-left: auto;
         margin-right: 0;
     }
-    
+
     .container {
         width: fit-content;
     }
@@ -82,7 +83,10 @@ h4 {
     color: var(--text-secondary);
 }
 
-select, button, input[type="text"], input[type="number"] {
+select,
+button,
+input[type="text"],
+input[type="number"] {
     padding: 8px 12px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
@@ -90,7 +94,9 @@ select, button, input[type="text"], input[type="number"] {
     color: var(--text-color);
     font-size: 14px;
     cursor: pointer;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition:
+        background-color 0.2s,
+        border-color 0.2s;
 }
 
 select {
@@ -107,12 +113,14 @@ button:hover {
     border-color: var(--accent-color);
 }
 
-input[type="text"], input[type="number"] {
+input[type="text"],
+input[type="number"] {
     flex: 1;
     cursor: text;
 }
 
-input[type="text"]:focus, input[type="number"]:focus {
+input[type="text"]:focus,
+input[type="number"]:focus {
     outline: none;
     border-color: var(--accent-color);
 }
@@ -316,8 +324,8 @@ input[type="text"]:focus, input[type="number"]:focus {
 }
 
 .global-toggle-mini.active {
-    background-color: #4F1B91;
-    border-color: #4F1B91;
+    background-color: #4f1b91;
+    border-color: #4f1b91;
     color: white;
 }
 
@@ -340,9 +348,9 @@ input[type="text"]:focus, input[type="number"]:focus {
 }
 
 .global-toggle-onoff.active {
-    background: #4F1B91;
+    background: #4f1b91;
     color: white;
-    border-color: #4F1B91;
+    border-color: #4f1b91;
 }
 
 .global-toggle-bw {
@@ -396,8 +404,8 @@ input[type="text"]:focus, input[type="number"]:focus {
 }
 
 .global-toggle-addremove.active {
-    background-color: #38846E;
-    border-color: #38846E;
+    background-color: #38846e;
+    border-color: #38846e;
     color: white;
 }
 
@@ -433,8 +441,8 @@ input[type="text"]:focus, input[type="number"]:focus {
 }
 
 .highlight-toggle-mini.active {
-    background-color: #4F1B91;
-    border-color: #4F1B91;
+    background-color: #4f1b91;
+    border-color: #4f1b91;
     color: white;
 }
 
@@ -465,9 +473,9 @@ input[type="text"]:focus, input[type="number"]:focus {
     padding: 2px 10px;
     font-size: 13px;
     font-weight: 700;
-    border: 2px solid #1A8B12;
+    border: 2px solid #1a8b12;
     border-radius: 4px;
-    background-color: #1A8B12;
+    background-color: #1a8b12;
     color: white;
     cursor: default;
     transition: all 0.2s;
@@ -476,19 +484,19 @@ input[type="text"]:focus, input[type="number"]:focus {
 }
 
 .tab-count-display.over-limit {
-    background-color: #98114E;
-    border-color: #98114E;
+    background-color: #98114e;
+    border-color: #98114e;
 }
 
 .tab-count-display:hover {
     opacity: 1;
-    background-color: #4CAF50;
-    border-color: #4CAF50;
+    background-color: #4caf50;
+    border-color: #4caf50;
 }
 
 .tab-count-display.over-limit:hover {
-    background-color: #98114E;
-    border-color: #98114E;
+    background-color: #98114e;
+    border-color: #98114e;
 }
 
 .tab-limit-btn {
@@ -531,7 +539,7 @@ input[type="text"]:focus, input[type="number"]:focus {
 }
 
 .toggle-zero-btn.active {
-    background: #5D2E6B;
+    background: #5d2e6b;
     color: white;
 }
 
@@ -759,7 +767,7 @@ input[type="text"]:focus, input[type="number"]:focus {
 }
 
 .site-time {
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     min-width: 90px;
     font-size: 14px;
     font-weight: 600;
@@ -913,7 +921,7 @@ input[type="text"]:focus, input[type="number"]:focus {
 .nav-hint {
     font-size: 11px;
     color: var(--text-secondary);
-    font-family: 'Monaco', 'Menlo', monospace;
+    font-family: "Monaco", "Menlo", monospace;
     white-space: nowrap;
     align-self: center;
     opacity: 0.7;
@@ -922,7 +930,7 @@ input[type="text"]:focus, input[type="number"]:focus {
 .shortcut-hint {
     font-size: 12px;
     color: var(--text-secondary);
-    font-family: 'Monaco', 'Menlo', monospace;
+    font-family: "Monaco", "Menlo", monospace;
     padding: 2px 6px;
     background: var(--bg-input);
     border-radius: 3px;
@@ -983,7 +991,7 @@ input[type="text"]:focus, input[type="number"]:focus {
 }
 
 .help-example {
-    color: #4CAF50;
+    color: #4caf50;
 }
 
 #importJsonSection {
@@ -1415,7 +1423,7 @@ input[type="text"]:focus, input[type="number"]:focus {
     border: 2px solid var(--border-color);
     border-radius: 4px;
     color: var(--text-primary);
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
 }
 
 .calc-input-row {
@@ -1447,7 +1455,7 @@ input[type="text"]:focus, input[type="number"]:focus {
 }
 
 .last-tape-entry {
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     font-size: 13px;
     color: #ffab4d;
     white-space: nowrap;
@@ -1572,7 +1580,7 @@ input[type="text"]:focus, input[type="number"]:focus {
     gap: 8px;
     padding: 8px;
     font-size: 13px;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     border-radius: 4px;
     margin-bottom: 2px;
 }
@@ -1631,7 +1639,7 @@ input[type="text"]:focus, input[type="number"]:focus {
 
 .tape-total span:last-child {
     color: var(--accent-color);
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
 }
 
 #primeSection {
@@ -1683,7 +1691,7 @@ input[type="text"]:focus, input[type="number"]:focus {
 
 .prime-value {
     color: var(--text-primary);
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     margin-left: 8px;
 }
 
@@ -1751,7 +1759,7 @@ input[type="text"]:focus, input[type="number"]:focus {
     color: var(--accent-color);
     font-size: 18px;
     font-weight: 700;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
 }
 
 .time-breakdown {
@@ -1789,7 +1797,7 @@ input[type="text"]:focus, input[type="number"]:focus {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 8px;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     font-size: 13px;
     grid-auto-flow: column;
     grid-template-rows: repeat(10, auto);
@@ -1799,7 +1807,7 @@ input[type="text"]:focus, input[type="number"]:focus {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     gap: 8px;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     font-size: 13px;
     grid-auto-flow: column;
     grid-template-rows: repeat(165, auto);
@@ -1809,7 +1817,7 @@ input[type="text"]:focus, input[type="number"]:focus {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 6px;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     font-size: 14px;
     grid-auto-flow: column;
     grid-template-rows: repeat(200, auto);
@@ -1819,7 +1827,7 @@ input[type="text"]:focus, input[type="number"]:focus {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 6px;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     font-size: 14px;
     grid-auto-flow: column;
     grid-template-rows: repeat(200, auto);
@@ -1829,7 +1837,7 @@ input[type="text"]:focus, input[type="number"]:focus {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 6px;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     font-size: 14px;
     grid-auto-flow: column;
     grid-template-rows: repeat(200, auto);
@@ -1850,7 +1858,7 @@ input[type="text"]:focus, input[type="number"]:focus {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 8px;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     font-size: 13px;
     grid-auto-flow: column;
     grid-template-rows: repeat(10, auto);
@@ -1871,7 +1879,7 @@ input[type="text"]:focus, input[type="number"]:focus {
     background: var(--bg-input);
     padding: 12px;
     border-radius: 4px;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     font-size: 13px;
     line-height: 1.8;
     word-wrap: break-word;
@@ -1901,13 +1909,13 @@ input[type="text"]:focus, input[type="number"]:focus {
 .reference-item span:last-child {
     color: var(--accent-color);
     font-weight: 600;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
 }
 
 .reference-table {
     width: 100%;
     border-collapse: collapse;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     font-size: 13px;
 }
 
@@ -1979,7 +1987,7 @@ input[type="text"]:focus, input[type="number"]:focus {
 .reference-table-compact td:nth-child(2),
 .reference-table-compact td:nth-child(3) {
     text-align: center;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
 }
 
 .reference-table-compact td:last-child {
@@ -2180,7 +2188,7 @@ input[type="text"]:focus, input[type="number"]:focus {
 }
 
 .since-current-duration {
-    color: #EBEAE4;
+    color: #ebeae4;
     font-weight: 600;
     font-size: 0.75rem;
     min-width: 0.5rem;
@@ -2245,10 +2253,128 @@ input[type="text"]:focus, input[type="number"]:focus {
 
 .since-example-delete {
     display: inline-block;
-    color: #8B1E3F;
+    color: #8b1e3f;
     font-size: 1.1rem;
     font-weight: bold;
     margin-left: 0.15rem;
     cursor: default;
     vertical-align: middle;
+}
+
+.bookmark-results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+
+.bookmark-results-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.bookmark-results-list::-webkit-scrollbar-track {
+    background: var(--bg-input);
+    border-radius: 4px;
+}
+
+.bookmark-results-list::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+.bookmark-result-item {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 10px;
+    background-color: #1a1a2e;
+    border-left: 3px solid #4a6fa5;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    text-decoration: none;
+    color: inherit;
+}
+
+.bookmark-result-item:hover {
+    background-color: #16213e;
+    border-left-color: #6c91c2;
+}
+
+.bookmark-result-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.4;
+}
+
+.bookmark-result-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #c8d6e5;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bookmark-result-folder {
+    font-size: 10px;
+    color: #6c91c2;
+    white-space: nowrap;
+    padding: 1px 6px;
+    background: rgba(74, 111, 165, 0.15);
+    border-radius: 3px;
+}
+
+.bookmark-result-score {
+    font-size: 10px;
+    font-weight: 700;
+    color: #4a6fa5;
+    font-family: "Courier New", monospace;
+    min-width: 28px;
+    text-align: right;
+}
+
+.bookmark-result-bottom {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.bookmark-result-url {
+    font-size: 10px;
+    color: #576574;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bookmark-result-open {
+    font-size: 10px;
+    color: #6c91c2;
+    text-decoration: none;
+    flex-shrink: 0;
+    padding: 0 2px;
+}
+
+.bookmark-result-open:hover {
+    color: #c8d6e5;
+}
+
+.bookmark-result-count {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    padding: 4px 0;
+}
+
+.bookmark-no-results {
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-align: center;
+    padding: 16px;
+    font-style: italic;
 }
