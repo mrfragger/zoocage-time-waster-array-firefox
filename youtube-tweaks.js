@@ -10,6 +10,7 @@
     hideMoreFromYoutube: false,
     disableAutoplay: false,
     hideEndCards: false,
+    hideAnnotations: false,
   };
 
   let styleElements = {};
@@ -181,6 +182,7 @@
     applyHideMoreFromYoutube();
     applyDisableAutoplay();
     applyHideEndCards();
+    applyHideAnnotations();
     applyDarkSearchFilters();
 
     const quality = qualityMap[settings.defaultQuality] || "medium";
@@ -193,7 +195,8 @@
       settings.hideExplore ||
       settings.hideMoreFromYoutube ||
       settings.disableAutoplay ||
-      settings.hideEndCards;
+      settings.hideEndCards ||
+      settings.hideAnnotations;
 
     if (!anyOptionChecked) {
       setTimeout(() => updatePlayerQuality(), 2000);
@@ -426,6 +429,83 @@
     }
   }
 
+  function applyHideAnnotations() {
+      if (settings.hideAnnotations) {
+          if (!styleElements.annotations) {
+              const style = document.createElement("style");
+              style.id = "zoocage-hide-annotations";
+              style.textContent = `
+                      .annotation,
+                      .video-annotations,
+                      .iv-branding,
+                      .iv-branding-text,
+                      .iv-drawer,
+                      .iv-card,
+                      .iv-promo,
+                      .ytp-ce-element[data-is-annotation],
+                      ytd-player-legacy-desktop-watch-ads-renderer,
+                      .html5-video-player .annotation-container {
+                          display: none !important;
+                          visibility: hidden !important;
+                          opacity: 0 !important;
+                          pointer-events: none !important;
+                      }
+                  `;
+              (document.head || document.documentElement).appendChild(style);
+              styleElements.annotations = style;
+          }
+
+          if (!window.annotationsObserver) {
+              const removeAnnotations = () => {
+                  const annotationSelectors = [
+                      ".annotation",
+                      ".video-annotations",
+                      ".iv-branding",
+                      ".iv-drawer",
+                      ".iv-card",
+                      ".iv-promo",
+                  ];
+
+                  annotationSelectors.forEach((selector) => {
+                      document.querySelectorAll(selector).forEach((el) => {
+                          el.remove();
+                      });
+                  });
+              };
+
+              removeAnnotations();
+
+              window.annotationsObserver = new MutationObserver(() => {
+                  removeAnnotations();
+              });
+
+              const checkPlayer = setInterval(() => {
+                  const player = document.querySelector(".html5-video-player");
+                  if (player) {
+                      clearInterval(checkPlayer);
+                      window.annotationsObserver.observe(player, {
+                          childList: true,
+                          subtree: true,
+                      });
+                      setInterval(removeAnnotations, 1000);
+                  }
+              }, 500);
+
+              setTimeout(() => clearInterval(checkPlayer), 10000);
+          }
+      } else {
+          if (styleElements.annotations) {
+              styleElements.annotations.remove();
+              delete styleElements.annotations;
+          }
+
+          if (window.annotationsObserver) {
+              window.annotationsObserver.disconnect();
+              window.annotationsObserver = null;
+          }
+      }
+  }
+
   function applyDisableAutoplay() {
     if (autoplayObserver) {
       autoplayObserver.disconnect();
@@ -548,6 +628,9 @@
       }
       if (oldSettings.hideEndCards !== settings.hideEndCards) {
         applyHideEndCards();
+      }
+      if (oldSettings.hideAnnotations !== settings.hideAnnotations) {
+          applyHideAnnotations();
       }
       if (oldSettings.defaultQuality !== settings.defaultQuality) {
         const quality = qualityMap[settings.defaultQuality] || "medium";

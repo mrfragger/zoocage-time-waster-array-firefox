@@ -4024,6 +4024,7 @@ const youtubeCheckboxes = {
   hideMoreFromYoutube: document.getElementById("hideMoreFromYoutube"),
   disableAutoplay: document.getElementById("disableAutoplay"),
   hideEndCards: document.getElementById("hideEndCards"),
+  hideAnnotations: document.getElementById("hideAnnotations"),
 };
 
 const defaultQualitySelect = document.getElementById("defaultQuality");
@@ -4041,6 +4042,7 @@ async function loadYouTubeSettings() {
     hideMoreFromYoutube: false,
     disableAutoplay: false,
     hideEndCards: false,
+    hideAnnotations: false,
   };
 
   const settings = { ...defaults, ...youtubeSettings };
@@ -4066,6 +4068,7 @@ async function saveYouTubeSettings() {
     hideMoreFromYoutube: youtubeCheckboxes.hideMoreFromYoutube.checked,
     disableAutoplay: youtubeCheckboxes.disableAutoplay.checked,
     hideEndCards: youtubeCheckboxes.hideEndCards.checked,
+    hideAnnotations: youtubeCheckboxes.hideAnnotations.checked,
   };
 
   await browser.storage.local.set({ youtubeSettings: newSettings });
