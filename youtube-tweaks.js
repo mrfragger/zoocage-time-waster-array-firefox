@@ -666,8 +666,8 @@
           '[data-zc-ad="1"]',
           "ytd-rich-item-renderer:has(ytd-ad-slot-renderer)",
           "ytd-rich-section-renderer:has(ytd-ad-slot-renderer)",
-          "ytd-item-section-renderer:has(> #contents > ytd-ad-slot-renderer)",
-          "ytd-item-section-renderer:has(> #contents > ytd-search-pyv-renderer)",
+          "ytd-item-section-renderer:has(> #contents > ytd-ad-slot-renderer:only-child)",
+          "ytd-item-section-renderer:has(> #contents > ytd-search-pyv-renderer:only-child)",
         ];
         style.textContent = selectors
           .map((s) => `${s} { display: none !important; }`)
@@ -728,18 +728,7 @@
         while (root && root.parentElement && root.parentElement.closest(AD_ROOT)) {
           root = root.parentElement.closest(AD_ROOT);
         }
-        if (!root) return;
-        hideEl(root);
-
-        // Hide the wrapper section too if the ad was its only content
-        const section = root.closest("ytd-item-section-renderer");
-        if (section) {
-          const contents = section.querySelector(":scope > #contents");
-          const visible = contents
-            ? [...contents.children].filter((c) => c.style.display !== "none")
-            : [];
-          if (contents && visible.length === 0) hideEl(section);
-        }
+        if (root) hideEl(root);
       });
   }
 
