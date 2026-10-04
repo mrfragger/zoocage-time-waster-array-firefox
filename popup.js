@@ -25,6 +25,7 @@ const darkModeCheckboxes = {
   preserveImages: document.getElementById("preserveImages"),
   invertMaybe: document.getElementById("invertMaybe"),
   spaFix: document.getElementById("spaFix"),
+  skipDark: document.getElementById("skipDark"),
 };
 
 const globalToggleBtn = document.getElementById("globalToggle");
@@ -1534,7 +1535,8 @@ async function loadDarkSettings() {
   }
 
   Object.keys(darkModeCheckboxes).forEach((key) => {
-    darkModeCheckboxes[key].checked = settings[key] === true;
+    darkModeCheckboxes[key].checked =
+      key === "skipDark" ? settings[key] !== false : settings[key] === true;
   });
 }
 
@@ -1544,48 +1546,42 @@ async function loadBlockSites() {
     blockSettings = {},
     darkModeSettings = {},
     rightClickAllowed = [],
+    blurSiteList = [],
   } = await browser.storage.local.get([
     "blockSettings",
     "darkModeSettings",
     "rightClickAllowed",
+    "blurSiteList",
   ]);
 
   blockSiteSelect.innerHTML = "";
+
+  function siteLabel(site) {
+    const icons =
+      (darkModeSettings[site] ? "🌙" : "") +
+      (blockSettings[site] ? "🧪" : "") +
+      (blurSiteList.includes(site) ? "💦" : "") +
+      (rightClickAllowed.includes(site) ? "🖱️" : "");
+    const name = site === "local-files" ? "Local Files (file:///)" : site;
+    return icons ? `${name}  ${icons}` : name;
+  }
+
+  function addOption(site) {
+    const option = document.createElement("option");
+    option.value = site;
+    option.textContent = siteLabel(site);
+    blockSiteSelect.appendChild(option);
+  }
 
   let currentHost = null;
   const isLocalFile =
     tabs && tabs[0] && tabs[0].url && tabs[0].url.startsWith("file://");
 
   if (isLocalFile) {
-    const localOption = document.createElement("option");
-    localOption.value = "local-files";
-    localOption.textContent = "Local Files (file:///)";
-    blockSiteSelect.appendChild(localOption);
-
-    const allConfiguredSites = new Set([
-      ...Object.keys(blockSettings).filter(
-        (s) => s !== "global" && s !== "local-files",
-      ),
-      ...Object.keys(darkModeSettings).filter(
-        (s) => s !== "global" && s !== "local-files",
-      ),
-      ...rightClickAllowed.filter((s) => s !== "local-files"),
-    ]);
-
-    Array.from(allConfiguredSites)
-      .sort()
-      .forEach((site) => {
-        const option = document.createElement("option");
-        option.value = site;
-        option.textContent = site;
-        blockSiteSelect.appendChild(option);
-      });
-
-    blockSiteSelect.value = "local-files";
-    return;
-  }
-
-  if (tabs && tabs[0] && tabs[0].url && !tabs[0].url.startsWith("about:")) {
+    currentHost = "local-files";
+  } else if (
+    tabs && tabs[0] && tabs[0].url && !tabs[0].url.startsWith("about:")
+  ) {
     currentHost = extractHost(tabs[0].url);
   }
 
@@ -1595,23 +1591,19 @@ async function loadBlockSites() {
     globalOption.textContent = "Global Settings";
     blockSiteSelect.appendChild(globalOption);
     blockSiteSelect.value = "global";
-    return;
+    // still list configured sites so they can be removed
+  } else {
+    addOption(currentHost);
   }
 
-  const currentOption = document.createElement("option");
-  currentOption.value = currentHost;
-  currentOption.textContent = currentHost;
-  blockSiteSelect.appendChild(currentOption);
-
   const allConfiguredSites = new Set([
-    ...Object.keys(blockSettings).filter(
-      (s) => s !== "global" && s !== currentHost,
-    ),
-    ...Object.keys(darkModeSettings).filter(
-      (s) => s !== "global" && s !== currentHost,
-    ),
-    ...rightClickAllowed.filter((s) => s !== currentHost),
+    ...Object.keys(blockSettings),
+    ...Object.keys(darkModeSettings),
+    ...rightClickAllowed,
+    ...blurSiteList,
   ]);
+  allConfiguredSites.delete("global");
+  if (currentHost) allConfiguredSites.delete(currentHost);
 
   Array.from(allConfiguredSites)
     .sort((a, b) => {
@@ -1619,15 +1611,9 @@ async function loadBlockSites() {
       if (b === "local-files") return 1;
       return a.localeCompare(b);
     })
-    .forEach((site) => {
-      const option = document.createElement("option");
-      option.value = site;
-      option.textContent =
-        site === "local-files" ? "Local Files (file:///)" : site;
-      blockSiteSelect.appendChild(option);
-    });
+    .forEach(addOption);
 
-  blockSiteSelect.value = currentHost;
+  blockSiteSelect.value = currentHost || "global";
 }
 
 async function saveBlockSettings() {
@@ -1727,7 +1713,7 @@ function updateImportJsonSection() {
   const helpSectionTab = document.getElementById("helpSectionTab");
   const actualWidth = window.innerWidth || document.documentElement.clientWidth;
 
-  if (actualWidth > 620) {
+  if (actualWidth > 700) {
     importJsonSection.style.display = "block";
     if (helpSectionTab) {
       helpSectionTab.style.display = "block";
@@ -2655,6 +2641,7 @@ siteDarkToggle.addEventListener("click", async () => {
       preserveImages: globalSettings.preserveImages,
       invertMaybe: globalSettings.invertMaybe,
       spaFix: globalSettings.spaFix,
+      skipDark: globalSettings.skipDark,
       enabled: true,
     };
 
@@ -2959,6 +2946,74 @@ globalToggleBtn.addEventListener("click", async () => {
     globalToggleBtn.classList.remove("active");
     globalToggleText.textContent = "OFF";
   }
+});
+
+document.getElementById("removeSiteBtn")?.addEventListener("click", async () => {
+  const site = blockSiteSelect.value;
+  if (!site || site === "global") {
+    alert("Select a site to remove.");
+    return;
+  }
+
+  const {
+    blockSettings = {},
+    darkModeSettings = {},
+    rightClickAllowed = [],
+    blurSiteList = [],
+  } = await browser.storage.local.get([
+    "blockSettings",
+    "darkModeSettings",
+    "rightClickAllowed",
+    "blurSiteList",
+  ]);
+
+  const found = [];
+  if (darkModeSettings[site]) found.push("Dark Mode");
+  if (blockSettings[site]) found.push("Content Blocking");
+  if (blurSiteList.includes(site)) found.push("Blur");
+  if (rightClickAllowed.includes(site)) found.push("Right-click");
+
+  if (found.length === 0) {
+    alert(`${site} isn't in any of these lists.`);
+    return;
+  }
+
+  if (!confirm(`Remove ${site} from: ${found.join(", ")}?`)) return;
+
+  delete blockSettings[site];
+  delete darkModeSettings[site];
+
+  await browser.storage.local.set({
+    blockSettings,
+    darkModeSettings,
+    rightClickAllowed: rightClickAllowed.filter((s) => s !== site),
+    blurSiteList: blurSiteList.filter((s) => s !== site),
+  });
+
+  // If the removed site is the one in the active tab, undo effects there
+  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+  const tab = tabs[0];
+  if (tab && tab.url) {
+    const tabKey = tab.url.startsWith("file://")
+      ? "local-files"
+      : extractHost(tab.url);
+    if (tabKey === site) {
+      browser.tabs
+        .sendMessage(tab.id, { action: "toggleBlur", enabled: false })
+        .catch(() => {});
+      browser.tabs.reload(tab.id);
+    }
+  }
+
+  await loadBlockSites();
+  await loadBlockSettings();
+  await loadDarkSettings();
+  blockSiteSelect.dispatchEvent(new Event("change"));
+  await updateBlockToggle();
+  await updateDarkToggle();
+  await updateRightClickToggle();
+  await updateBlurSiteButton();
+  await loadBlurSettingsForCurrentSite();
 });
 
 darkModeToggle.addEventListener("click", async () => {
@@ -4025,6 +4080,8 @@ const youtubeCheckboxes = {
   disableAutoplay: document.getElementById("disableAutoplay"),
   hideEndCards: document.getElementById("hideEndCards"),
   hideAnnotations: document.getElementById("hideAnnotations"),
+  defaultAudioTrack: document.getElementById("defaultAudioTrack"),
+  hideSponsored: document.getElementById("hideSponsored"),
 };
 
 const defaultQualitySelect = document.getElementById("defaultQuality");
@@ -4043,6 +4100,8 @@ async function loadYouTubeSettings() {
     disableAutoplay: false,
     hideEndCards: false,
     hideAnnotations: false,
+    defaultAudioTrack: false,
+    hideSponsored: false,
   };
 
   const settings = { ...defaults, ...youtubeSettings };
@@ -4069,6 +4128,8 @@ async function saveYouTubeSettings() {
     disableAutoplay: youtubeCheckboxes.disableAutoplay.checked,
     hideEndCards: youtubeCheckboxes.hideEndCards.checked,
     hideAnnotations: youtubeCheckboxes.hideAnnotations.checked,
+    defaultAudioTrack: youtubeCheckboxes.defaultAudioTrack.checked,
+    hideSponsored: youtubeCheckboxes.hideSponsored.checked,
   };
 
   await browser.storage.local.set({ youtubeSettings: newSettings });

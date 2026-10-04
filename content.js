@@ -34,12 +34,16 @@ class ContentBlocker {
         this.location = window.location.hostname;
         this.lastUrl = window.location.href;
         this.isApplying = false;
-        
+
         this.cachedDarkModeEnabled = false;
         this.cachedSiteSettings = null;
         this.cachedGlobalSettings = {};
         this.settingsLoaded = false;
-        
+
+        this.nativeDark = null;      // cached "page is already dark" result
+        this.darkToken = 0;          // cancels stale async checks
+        this.darkSuppressed = false; // true while we're intentionally not inverting
+
         if (document.head) {
             document.head.appendChild(this.styleEl);
             document.head.appendChild(this.darkModeStyleEl);
@@ -53,7 +57,7 @@ class ContentBlocker {
             });
             observer.observe(document.documentElement, { childList: true, subtree: true });
         }
-        
+
         this.init();
     }
 
@@ -63,7 +67,13 @@ class ContentBlocker {
         this.updateBlocking();
         this.initNavigationMonitoring();
         this.initDarkModeProtection();
-        
+
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        mq.addEventListener('change', () => {
+            this.nativeDark = null;
+            this.updateDarkMode();
+        });
+
         browser.storage.onChanged.addListener(() => {
             this.loadSettings();
             this.updateBlocking();
@@ -72,9 +82,9 @@ class ContentBlocker {
     }
 
     async loadSettings() {
-        const { darkModeEnabled = false, darkModeSettings = {} } = 
+        const { darkModeEnabled = false, darkModeSettings = {} } =
             await browser.storage.local.get(['darkModeEnabled', 'darkModeSettings']);
-        
+
         this.cachedDarkModeEnabled = darkModeEnabled;
         this.cachedSiteSettings = darkModeSettings[this.location];
         this.cachedGlobalSettings = darkModeSettings.global || {};
@@ -84,12 +94,12 @@ class ContentBlocker {
     handleNavigation() {
         if (!this.settingsLoaded) return;
         if (!this.cachedDarkModeEnabled) return;
-        
-        const spaFixEnabled = (this.cachedSiteSettings && this.cachedSiteSettings.spaFix === true) || 
+
+        const spaFixEnabled = (this.cachedSiteSettings && this.cachedSiteSettings.spaFix === true) ||
                               (!this.cachedSiteSettings && this.cachedGlobalSettings.spaFix === true);
-        
+
         if (!spaFixEnabled) return;
-        
+
         if (!document.documentElement.classList.contains('dms-enabled')) {
             document.documentElement.classList.add('dms-enabled');
         }
@@ -101,23 +111,23 @@ class ContentBlocker {
                 const oldLocation = this.location;
                 this.lastUrl = window.location.href;
                 this.location = window.location.hostname;
-                
+
                 if (oldLocation === this.location) {
                     this.handleNavigation();
                 }
             }
         };
-        
+
         setInterval(checkNavigation, 500);
-        
+
         const originalPushState = history.pushState;
         const originalReplaceState = history.replaceState;
-        
+
         history.pushState = function(...args) {
             originalPushState.apply(this, args);
             setTimeout(checkNavigation, 0);
         };
-        
+
         history.replaceState = function(...args) {
             originalReplaceState.apply(this, args);
             setTimeout(checkNavigation, 0);
@@ -126,11 +136,11 @@ class ContentBlocker {
         document.addEventListener('turbo:load', () => {
             checkNavigation();
         });
-        
+
         document.addEventListener('turbo:render', () => {
             checkNavigation();
         });
-        
+
         window.addEventListener('popstate', checkNavigation);
         window.addEventListener('hashchange', checkNavigation);
     }
@@ -139,12 +149,12 @@ class ContentBlocker {
         if (!this.settingsLoaded) {
             await this.loadSettings();
         }
-        
-        const spaFixEnabled = (this.cachedSiteSettings && this.cachedSiteSettings.spaFix === true) || 
+
+        const spaFixEnabled = (this.cachedSiteSettings && this.cachedSiteSettings.spaFix === true) ||
                               (!this.cachedSiteSettings && this.cachedGlobalSettings.spaFix === true);
-        
-        const needsProtection = this.cachedDarkModeEnabled && spaFixEnabled;        
-        
+
+        const needsProtection = this.cachedDarkModeEnabled && spaFixEnabled;
+
         const styleObserver = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 if (mutation.type === 'childList') {
@@ -158,23 +168,24 @@ class ContentBlocker {
                 }
             }
         });
-        
+
         if (document.head) {
             styleObserver.observe(document.head, { childList: true });
         }
-        
+
         if (needsProtection) {
-            const classObserver = new MutationObserver(() => {
-                if (!document.documentElement.classList.contains('dms-enabled')) {
-                    document.documentElement.classList.add('dms-enabled');
-                }
-            });
-            
+          const classObserver = new MutationObserver(() => {
+              if (this.darkSuppressed) return;
+              if (!document.documentElement.classList.contains('dms-enabled')) {
+                  document.documentElement.classList.add('dms-enabled');
+              }
+          });
+
             classObserver.observe(document.documentElement, {
                 attributes: true,
                 attributeFilter: ['class']
             });
-            
+
             if (this.cachedDarkModeEnabled && this.cachedSiteSettings?.enabled !== false) {
                 document.documentElement.classList.add('dms-enabled');
             }
@@ -182,16 +193,16 @@ class ContentBlocker {
     }
 
     async updateBlocking() {
-        const { globalBlockingEnabled = false, blockSettings = {} } = 
+        const { globalBlockingEnabled = false, blockSettings = {} } =
             await browser.storage.local.get(['globalBlockingEnabled', 'blockSettings']);
-        
+
         if (!globalBlockingEnabled) {
             this.styleEl.textContent = '';
             return;
         }
-        
+
         const isLocalFile = window.location.protocol === 'file:';
-        
+
         let settings;
         if (isLocalFile) {
             settings = blockSettings['local-files'] || blockSettings.global || {
@@ -204,79 +215,138 @@ class ContentBlocker {
                 blockSVG: false
             };
         }
-        
+
         let css = '';
-        
+
         if (settings.blockImages) {
             css += `
                 img { display: none !important; }
                 * { background-image: none !important; }
             `;
         }
-        
+
         if (settings.blockSVG) {
             css += `svg { display: none !important; }`;
         }
-        
+
         this.styleEl.textContent = css;
     }
 
     async updateDarkMode() {
-        const { darkModeEnabled = false, darkModeSettings = {} } = 
+        this.darkToken++;
+
+        const { darkModeEnabled = false, darkModeSettings = {} } =
             await browser.storage.local.get(['darkModeEnabled', 'darkModeSettings']);
-        
+
         const isLocalFile = window.location.protocol === 'file:';
         const isExtensionPage = window.location.protocol === 'moz-extension:';
-        
-        let siteSettings;
-        if (isLocalFile || isExtensionPage) {
-            siteSettings = darkModeSettings['local-files'];
-        } else {
-            siteSettings = darkModeSettings[this.location];
-        }
-        
+
+        const siteSettings = (isLocalFile || isExtensionPage)
+            ? darkModeSettings['local-files']
+            : darkModeSettings[this.location];
+
         if (siteSettings !== undefined) {
             if (siteSettings.enabled === false) {
-                document.documentElement.classList.remove('dms-enabled');
-                this.darkModeStyleEl.textContent = '';
+                this.disableDark();
                 return;
             }
-            
             if (siteSettings.enabled === true) {
-                if (this.isYouTube()) {
-                    this.darkModeStyleEl.textContent = this.getYouTubeDarkCSS();
-                } else {
-                    this.darkModeStyleEl.textContent = this.generateDarkCSS(siteSettings);
-                }
-                document.documentElement.classList.add('dms-enabled');
-                if (siteSettings.invertMaybe) {
-                    this.initInvertMaybe();
-                }
+                this.applyDark(siteSettings);
                 return;
             }
         }
-        
+
         if (!darkModeEnabled) {
-            document.documentElement.classList.remove('dms-enabled');
-            this.darkModeStyleEl.textContent = '';
+            this.disableDark();
             return;
         }
-        
-        const globalSettings = darkModeSettings.global || {
+
+        this.applyDark(darkModeSettings.global || {
             preserveImages: true,
             invertMaybe: false,
-            spaFix: false
-        };
-        
-        if (this.isYouTube()) {
-            this.darkModeStyleEl.textContent = this.getYouTubeDarkCSS();
-        } else {
-            this.darkModeStyleEl.textContent = this.generateDarkCSS(globalSettings);
-        }
+            spaFix: false,
+            skipDark: true
+        });
+    }
+
+    enableDark(settings) {
+        this.darkSuppressed = false;
+        this.darkModeStyleEl.textContent = this.isYouTube()
+            ? this.getYouTubeDarkCSS()
+            : this.generateDarkCSS(settings);
         document.documentElement.classList.add('dms-enabled');
-        if (globalSettings.invertMaybe) {
+        if (settings.invertMaybe) {
             this.initInvertMaybe();
         }
+    }
+
+    disableDark() {
+        this.darkSuppressed = true;
+        document.documentElement.classList.remove('dms-enabled');
+        this.darkModeStyleEl.textContent = '';
+    }
+
+    async applyDark(settings) {
+        const token = this.darkToken;
+
+        // YouTube has its own theme CSS; skipDark === false means "always invert"
+        if (this.isYouTube() || settings.skipDark === false) {
+            this.enableDark(settings);
+            return;
+        }
+
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        // Cached result: no waiting needed
+        if (this.nativeDark !== null) {
+            this.nativeDark ? this.disableDark() : this.enableDark(settings);
+            return;
+        }
+
+        // System is light, so the page is almost certainly light: invert right away (no flash)
+        if (!prefersDark) {
+            this.enableDark(settings);
+        }
+
+        await this.whenPageStyled();
+        if (token !== this.darkToken) return; // a newer update superseded this one
+
+        this.nativeDark = this.isPageNativelyDark();
+        this.nativeDark ? this.disableDark() : this.enableDark(settings);
+    }
+
+    whenPageStyled() {
+        return new Promise((resolve) => {
+            if (document.readyState === 'complete') return resolve();
+            window.addEventListener('load', resolve, { once: true });
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => setTimeout(resolve, 100), { once: true });
+            } else {
+                setTimeout(resolve, 100);
+            }
+        });
+    }
+
+    isPageNativelyDark() {
+        const lum = (c) => {
+            const m = c && c.match(/rgba?\(([^)]+)\)/);
+            if (!m) return null;
+            const p = m[1].split(/[,\s/]+/).filter(Boolean).map(parseFloat);
+            const a = p.length > 3 ? p[3] : 1;
+            if (a < 0.5) return null; // transparent: look at the next layer
+            return (p[0] * 299 + p[1] * 587 + p[2] * 114) / 1000;
+        };
+
+        for (const el of [document.body, document.documentElement]) {
+            if (!el) continue;
+            const l = lum(getComputedStyle(el).backgroundColor);
+            if (l !== null) return l < 128;
+        }
+
+        // Both transparent: canvas color comes from color-scheme
+        const scheme = getComputedStyle(document.documentElement).colorScheme || '';
+        const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        return scheme.includes('dark') && (!scheme.includes('light') || sysDark);
     }
 
     isYouTube() {
@@ -285,36 +355,36 @@ class ContentBlocker {
 
     generateDarkCSS(settings) {
         let css = 'html.dms-enabled { filter: invert(100%) hue-rotate(180deg) !important; }';
-        
+
         css += 'html { transition: filter 0.15s ease-in-out; }';
-        
+
         const selectors = [];
-        
+
         if (settings.preserveImages) {
             selectors.push('img', '[style*="background-image"]', '[style*="background:url"]');
         }
-        
+
         selectors.push('video', 'iframe[src*="youtube"]', 'iframe[src*="vimeo"]', '.video-player');
-        
+
         if (settings.invertMaybe) {
             selectors.push('.dms-preserve');
         }
-        
+
         selectors.push('.zoocage-highlight', 'mark.zoocage-highlight');
-        
+
         if (selectors.length > 0) {
             css += `html.dms-enabled ${selectors.join(', html.dms-enabled ')} {
                 filter: invert(100%) hue-rotate(180deg) !important;
             }`;
         }
-        
+
         return css;
     }
 
     getYouTubeDarkCSS() {
         return `
-            ytd-app, #content, #page-manager, ytd-watch, ytd-browse, 
-            #channel-container #channel-header, ytd-multi-page-menu-renderer, 
+            ytd-app, #content, #page-manager, ytd-watch, ytd-browse,
+            #channel-container #channel-header, ytd-multi-page-menu-renderer,
             #page-manager ytd-browse ytd-playlist-sidebar-renderer,
             #page-manager ytd-section-list-renderer#primary #contents ytd-item-section-renderer #contents,
             #page-manager ytd-browse #alerts, #page-manager ytd-section-list-renderer#primary #contents,
@@ -329,12 +399,12 @@ class ContentBlocker {
             ytd-backstage-post-renderer, ytd-notification-renderer, ytd-popup-container,
             #chips-wrapper, iron-selector#chips, yt-chip-cloud-chip-renderer,
             frosted-glass.with-chipbar.ytd-app, .ytSearchboxComponentInputBox,
-            ytd-feed-filter-chip-bar-renderer, #chips-content, #page-header, ytd-tabbed-page-header, 
-            yt-page-header-renderer, div#tabs-inner-container.style-scope.ytd-tabbed-page-header, 
-            div#page-header-banner.style-scope.ytd-tabbed-page-header, 
-            div#background.style-scope.tp-yt-app-header, button.ytSearchboxComponentSearchButton, 
+            ytd-feed-filter-chip-bar-renderer, #chips-content, #page-header, ytd-tabbed-page-header,
+            yt-page-header-renderer, div#tabs-inner-container.style-scope.ytd-tabbed-page-header,
+            div#page-header-banner.style-scope.ytd-tabbed-page-header,
+            div#background.style-scope.tp-yt-app-header, button.ytSearchboxComponentSearchButton,
             div#i0.ytSearchboxComponentSuggestionsContainer.ytSearchboxComponentSuggestionsContainerScrollable,
-            div#page-header-container.style-scope.ytd-tabbed-page-header, 
+            div#page-header-container.style-scope.ytd-tabbed-page-header,
             tp-yt-app-header#header.style-scope.ytd-tabbed-page-header, div#i1.ytSearchboxComponentSuggestionsContainer.ytSearchboxComponentSuggestionsContainerScrollable, div#content-wrapper.style-scope.ytd-feed-nudge-renderer, div#contents.style-scope.yt-live-chat-renderer, tp-yt-iron-pages#content-pages.style-scope.yt-live-chat-renderer, div#above-the-fold.style-scope.ytd-watch-metadata div#bottom-row.style-scope.ytd-watch-metadata div#description.item.style-scope.ytd-watch-metadata
             {
                 background: #1a1a1a !important;
@@ -353,7 +423,7 @@ class ContentBlocker {
 
     initInvertMaybe() {
         if (this.invertMaybeObserver) return;
-        
+
         if (!document.body) {
             const bodyObserver = new MutationObserver(() => {
                 if (document.body) {
@@ -364,10 +434,10 @@ class ContentBlocker {
             bodyObserver.observe(document.documentElement, { childList: true });
             return;
         }
-        
+
         this.invertMaybeObserver = new MutationObserver((mutations) => {
             if (!document.documentElement.classList.contains('dms-enabled')) return;
-            
+
             mutations.forEach(mutation => {
                 mutation.addedNodes.forEach(node => {
                     if (node.nodeType === 1) {
@@ -377,49 +447,49 @@ class ContentBlocker {
                 });
             });
         });
-        
+
         this.invertMaybeObserver.observe(document.body, { childList: true, subtree: true });
         document.querySelectorAll('*').forEach(el => this.processElement(el));
     }
-    
+
     processElement(element) {
         if (!element || !element.tagName) return;
         if (['HTML', 'HEAD', 'STYLE', 'SCRIPT', 'META', 'LINK'].includes(element.tagName)) return;
-        
+
         try {
             const style = window.getComputedStyle(element);
             const bg = style.backgroundColor;
             const color = style.color;
-            
+
             if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
                 if (this.isDark(bg)) {
                     element.classList.add('dms-preserve');
                     return;
                 }
             }
-            
+
             if (color && bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
                 const textIsDark = this.isDark(color);
                 const bgIsLight = !this.isDark(bg);
-                
+
                 if (textIsDark && bgIsLight) {
                     return;
                 }
             }
-            
+
             if (element.tagName === 'DIV' || element.tagName === 'SECTION' || element.tagName === 'ARTICLE') {
                 const hasMedia = element.querySelector('img, video, canvas');
                 if (hasMedia && bg && this.isDark(bg)) {
                     element.classList.add('dms-preserve');
                 }
             }
-            
+
         } catch (e) {}
     }
-    
+
     isDark(color) {
         let r, g, b, a = 1;
-        
+
         if (color.startsWith('rgb')) {
             const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
             if (match) {
@@ -435,11 +505,11 @@ class ContentBlocker {
             g = parseInt(hex.substring(2, 4), 16);
             b = parseInt(hex.substring(4, 6), 16);
         }
-        
+
         if (a === 0) return false;
-        
+
         const luminance = (r * 299 + g * 587 + b * 114) / 1000;
-        return luminance < 140; 
+        return luminance < 140;
     }
 }
 
@@ -470,18 +540,18 @@ function initHoverZoom() {
                 }
             }
         }
-        
+
         if (img.srcset) {
             const urls = img.srcset.split(',').map(s => s.trim().split(' ')[0]);
             return urls[urls.length - 1] || img.src;
         }
-        
+
         if (img.dataset && img.dataset.src) {
             return img.dataset.src;
         }
-        
+
         const src = img.getAttribute('src');
-        
+
         if (src && src.includes('amazon')) {
             if (src.includes('._AC_')) {
                 return src.replace(/\._AC_[^.]+\./, '._AC_SL1500_.');
@@ -490,17 +560,17 @@ function initHoverZoom() {
                 return src.replace(/\._S[XY]\d+_\./, '._AC_SL1500_.');
             }
         }
-        
+
         if (src && src.includes('q%3D80')) {
             return src.replace('q%3D80', 'q%3D100').replace('m%3D1024', 'm%3D2048');
         }
-        
+
         return img.src;
     }
 
     function createZoom(img, e) {
         if (currentImg === img && zoomedImg && document.body.contains(zoomedImg)) return;
-        
+
         removeZoom();
 
         currentImg = img;
@@ -517,9 +587,9 @@ function initHoverZoom() {
             box-shadow: 0 0 20px rgba(0,0,0,0.5) !important;
             object-fit: contain !important;
         `;
-        
+
         document.querySelectorAll('.zoocage-hover-zoom').forEach(el => el.remove());
-        
+
         document.body.appendChild(zoomedImg);
         updatePos(e);
     }
@@ -545,15 +615,15 @@ function initHoverZoom() {
     function removeZoom() {
         if (isRemoving) return;
         isRemoving = true;
-        
+
         if (zoomedImg && zoomedImg.parentNode) {
             zoomedImg.remove();
         }
         zoomedImg = null;
         currentImg = null;
-        
+
         document.querySelectorAll('.zoocage-hover-zoom').forEach(el => el.remove());
-        
+
         setTimeout(() => {
             isRemoving = false;
         }, 50);
@@ -563,26 +633,26 @@ function initHoverZoom() {
         if (!isEnabled) return;
         const img = e.target;
         if (img.tagName !== 'IMG') return;
-        
+
         const picture = img.closest('picture');
         const isAmazonThumb = img.closest('.s-product-image-container, .a-dynamic-image-container') !== null;
-        
+
         let minSize = picture ? 50 : 100;
         if (isAmazonThumb) {
             minSize = 50;
         }
-        
+
         const actualWidth = img.naturalWidth || img.width;
         const actualHeight = img.naturalHeight || img.height;
-        
+
         if (actualWidth <= minSize || actualHeight <= minSize) return;
-        
+
         createZoom(img, e);
     }
 
     function handleMove(e) {
         if (!isEnabled || !zoomedImg) return;
-        
+
         const target = e.target;
         if (target && target.tagName === 'IMG' && target === currentImg) {
             updatePos(e);
@@ -590,11 +660,11 @@ function initHoverZoom() {
             removeZoom();
         } else {
             const rect = currentImg.getBoundingClientRect();
-            const isOverOriginal = e.clientX >= rect.left && 
-                                   e.clientX <= rect.right && 
-                                   e.clientY >= rect.top && 
+            const isOverOriginal = e.clientX >= rect.left &&
+                                   e.clientX <= rect.right &&
+                                   e.clientY >= rect.top &&
                                    e.clientY <= rect.bottom;
-            
+
             if (!isOverOriginal) {
                 removeZoom();
             } else {
@@ -605,19 +675,19 @@ function initHoverZoom() {
 
     function handleLeave(e) {
         if (!isEnabled) return;
-        
+
         if (e.target === currentImg) {
             setTimeout(() => {
                 if (!currentImg) return;
-                
+
                 const rect = currentImg.getBoundingClientRect();
                 const mouseX = e.clientX;
                 const mouseY = e.clientY;
-                const isStillOver = mouseX >= rect.left && 
-                                    mouseX <= rect.right && 
-                                    mouseY >= rect.top && 
+                const isStillOver = mouseX >= rect.left &&
+                                    mouseX <= rect.right &&
+                                    mouseY >= rect.top &&
                                     mouseY <= rect.bottom;
-                
+
                 if (!isStillOver && currentImg === e.target) {
                     removeZoom();
                 }
@@ -627,7 +697,7 @@ function initHoverZoom() {
 
     async function updateState() {
         const { hoverZoomEnabled = false } = await browser.storage.local.get('hoverZoomEnabled');
-        
+
         if (hoverZoomEnabled && !isEnabled) {
             isEnabled = true;
             document.addEventListener('mouseenter', handleEnter, true);
@@ -653,31 +723,31 @@ initHoverZoom();
 
 (function initRightClick() {
     let enabled = false;
-    
+
     function enable() {
         if (enabled) return;
         enabled = true;
         document.addEventListener('contextmenu', (e) => e.stopPropagation(), true);
     }
-    
+
     function disable() {
         enabled = false;
     }
-    
+
     async function update() {
         const { rightClickAllowed = [] } = await browser.storage.local.get('rightClickAllowed');
-        
+
         if (rightClickAllowed.includes(window.location.hostname)) {
             enable();
         } else {
             disable();
         }
     }
-    
+
     browser.storage.onChanged.addListener((changes) => {
         if (changes.rightClickAllowed) update();
     });
-    
+
     update();
 })();
 
@@ -702,40 +772,40 @@ function buildSearchIndex() {
             combineWith: 'AND'
         }
     });
-    
+
     pageIndexData = [];
-    
+
     const walker = document.createTreeWalker(
         document.body,
         NodeFilter.SHOW_TEXT,
         {
             acceptNode: function(node) {
                 if (!node.parentElement) return NodeFilter.FILTER_REJECT;
-                
-                if (node.parentElement.tagName === 'SCRIPT' || 
+
+                if (node.parentElement.tagName === 'SCRIPT' ||
                     node.parentElement.tagName === 'STYLE' ||
                     node.parentElement.tagName === 'NOSCRIPT' ||
                     node.parentElement.classList.contains('zoocage-highlight')) {
                     return NodeFilter.FILTER_REJECT;
                 }
-                
+
                 if (node.parentElement.tagName === 'MARK') {
                     return NodeFilter.FILTER_REJECT;
                 }
-                
+
                 if (node.textContent.trim().length === 0) {
                     return NodeFilter.FILTER_REJECT;
                 }
-                
+
                 return NodeFilter.FILTER_ACCEPT;
             }
         }
     );
-    
+
     let id = 0;
     let node;
     const documents = [];
-    
+
     while (node = walker.nextNode()) {
         const data = {
             id: id++,
@@ -745,48 +815,48 @@ function buildSearchIndex() {
         pageIndexData.push(data);
         documents.push(data);
     }
-    
+
     pageSearchIndex.addAll(documents);
-    
+
 }
 
 function highlightMultipleTerms(terms, colors, diacriticsEnabled = true) {
     termOccurrenceCounts = {};
     highlightsByTerm = {};
-    
+
     if (!pageSearchIndex || pageIndexData.length === 0) {
         buildSearchIndex();
     }
-    
+
     let styleTag = document.getElementById('zoocage-highlight-styles');
     if (!styleTag) {
         styleTag = document.createElement('style');
         styleTag.id = 'zoocage-highlight-styles';
         document.head.appendChild(styleTag);
     }
-    
+
     let css = '';
     colors.forEach((color, i) => {
         const textColor = getContrastColor(color);
         css += `.zoocage-hl-${i} { background-color: ${color} !important; color: ${textColor} !important; }\n`;
     });
     styleTag.textContent = css;
-    
+
     const exactPhraseTerms = new Set();
     const termDataMap = new Map();
-    
+
     terms.forEach((term, termIndex) => {
         const colorIndex = termIndex % colors.length;
         let searchTerm = term;
         let isExactPhrase = false;
-        
+
         const phraseMatch = term.match(/^"(.+)"$/);
         if (phraseMatch) {
             searchTerm = phraseMatch[1];
             isExactPhrase = true;
             exactPhraseTerms.add(searchTerm.toLowerCase());
         }
-        
+
         termDataMap.set(term, {
             term: searchTerm,
             fullTerm: term,
@@ -795,46 +865,46 @@ function highlightMultipleTerms(terms, colors, diacriticsEnabled = true) {
             isExactPhrase: isExactPhrase
         });
     });
-    
+
     const nodesToProcess = new Map();
-    
+
     if (window.zoocageCJKMode) {
-        
+
         const walker = document.createTreeWalker(
             document.body,
             NodeFilter.SHOW_TEXT,
             {
                 acceptNode: function(node) {
                     if (!node.parentElement) return NodeFilter.FILTER_REJECT;
-                    
-                    if (node.parentElement.tagName === 'SCRIPT' || 
+
+                    if (node.parentElement.tagName === 'SCRIPT' ||
                         node.parentElement.tagName === 'STYLE' ||
                         node.parentElement.tagName === 'NOSCRIPT' ||
                         node.parentElement.classList.contains('zoocage-highlight')) {
                         return NodeFilter.FILTER_REJECT;
                     }
-                    
+
                     if (node.parentElement.tagName === 'MARK') {
                         return NodeFilter.FILTER_REJECT;
                     }
-                    
+
                     if (node.textContent.trim().length === 0) {
                         return NodeFilter.FILTER_REJECT;
                     }
-                    
+
                     return NodeFilter.FILTER_ACCEPT;
                 }
             }
         );
-        
+
         let node;
         while (node = walker.nextNode()) {
             const text = node.textContent;
-            
+
             terms.forEach(term => {
                 const termData = termDataMap.get(term);
                 const searchTerm = termData.term;
-                
+
                 if (text.includes(searchTerm)) {
                     if (!nodesToProcess.has(node)) {
                         nodesToProcess.set(node, []);
@@ -850,15 +920,15 @@ function highlightMultipleTerms(terms, colors, diacriticsEnabled = true) {
                 }
             });
         }
-        
-        
+
+
     } else {
         terms.forEach(term => {
             const termData = termDataMap.get(term);
             const normalizedTerm = diacriticsEnabled ? termData.term : normalizeDiacritics(termData.term);
-            
+
             let results;
-            
+
             if (termData.isExactPhrase) {
                 results = pageSearchIndex.search(normalizedTerm, {
                     prefix: false,
@@ -871,7 +941,7 @@ function highlightMultipleTerms(terms, colors, diacriticsEnabled = true) {
                     fuzzy: 0.2
                 });
             }
-            
+
             if (results && results.length > 0) {
                 results.forEach(result => {
                     const data = pageIndexData[result.id];
@@ -892,18 +962,18 @@ function highlightMultipleTerms(terms, colors, diacriticsEnabled = true) {
             }
         });
     }
-    
+
     nodesToProcess.forEach((termsData, textNode) => {
         try {
             const originalText = textNode.textContent;
             const searchText = diacriticsEnabled ? originalText : normalizeDiacritics(originalText);
             const allMatches = [];
-            
+
             termsData.forEach(termData => {
                 let regex;
-                
+
                 const isCJKTerm = /[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf\u3400-\u4dbf\uac00-\ud7af]/.test(termData.term);
-                
+
                 if (termData.isExactPhrase) {
                     const escapedTerm = escapeRegex(termData.term);
                     if (isCJKTerm) {
@@ -925,54 +995,54 @@ function highlightMultipleTerms(terms, colors, diacriticsEnabled = true) {
                         regex = new RegExp('\\b(\\w*' + escapedTerm + '\\w*)\\b', 'gi');
                     }
                 }
-                
+
                 let match;
-                
+
                 while ((match = regex.exec(searchText)) !== null) {
                     let startPos = match.index;
                     let endPos = match.index + match[0].length;
                     let matchText = originalText.substring(startPos, endPos);
-                    
+
                     if (termData.isExactPhrase) {
                         const fullNodeText = originalText;
-                        
+
                         if (fullNodeText.length > matchText.length) {
                             const charAfter = endPos < fullNodeText.length ? fullNodeText[endPos] : '';
-                            
+
                             if (/[a-zA-Z]/.test(charAfter)) {
                                 continue;
                             }
-                            
-                            if ((charAfter === "'" || charAfter === "'") && 
-                                endPos + 1 < fullNodeText.length && 
+
+                            if ((charAfter === "'" || charAfter === "'") &&
+                                endPos + 1 < fullNodeText.length &&
                                 /[sS]/.test(fullNodeText[endPos + 1])) {
                                 continue;
                             }
                         } else {
                             const exactMatch = fullNodeText.toLowerCase() === termData.term.toLowerCase();
-                            
+
                             if (!exactMatch) {
                                 continue;
                             }
                         }
                     }
-                    
+
                     if (termData.hasExactPhraseVersion) {
                         const beforeChar = startPos > 0 ? searchText[startPos - 1] : ' ';
                         const afterChar = endPos < searchText.length ? searchText[endPos] : ' ';
                         const isWholeWord = !/\w/.test(beforeChar) && !/\w/.test(afterChar);
-                        
+
                         if (isWholeWord) {
                             continue;
                         }
                     }
-                    
+
                     const trimmed = matchText.replace(/[.!?,;:]+$/, '');
                     if (trimmed.length < matchText.length) {
                         endPos = startPos + trimmed.length;
                         matchText = trimmed;
                     }
-                    
+
                     allMatches.push({
                         start: startPos,
                         end: endPos,
@@ -984,19 +1054,19 @@ function highlightMultipleTerms(terms, colors, diacriticsEnabled = true) {
                     });
                 }
             });
-            
+
             if (allMatches.length === 0) return;
-            
+
             allMatches.sort((a, b) => {
                 if (a.isExactPhrase && !b.isExactPhrase) return -1;
                 if (!a.isExactPhrase && b.isExactPhrase) return 1;
                 if (a.start !== b.start) return a.start - b.start;
                 return (b.end - b.start) - (a.end - a.start);
             });
-            
+
             const nonOverlapping = [];
             let lastEnd = 0;
-            
+
             for (const match of allMatches) {
                 if (match.start >= lastEnd) {
                     nonOverlapping.push(match);
@@ -1004,22 +1074,22 @@ function highlightMultipleTerms(terms, colors, diacriticsEnabled = true) {
                     termOccurrenceCounts[match.fullTerm] = (termOccurrenceCounts[match.fullTerm] || 0) + 1;
                 }
             }
-            
+
             let html = '';
             let lastIndex = 0;
-            
+
             for (const match of nonOverlapping) {
                 html += escapeHtml(originalText.substring(lastIndex, match.start));
                 const escapedFullTerm = match.fullTerm.replace(/"/g, '&quot;');
                 html += `<mark class="zoocage-highlight zoocage-hl-${match.colorIndex}" data-term-index="${match.termIndex}" data-full-term="${escapedFullTerm}">${escapeHtml(match.text)}</mark>`;
                 lastIndex = match.end;
             }
-            
+
             html += escapeHtml(originalText.substring(lastIndex));
-            
+
             const span = document.createElement('span');
             span.innerHTML = html;
-            
+
             if (textNode.parentNode) {
                 textNode.parentNode.replaceChild(span, textNode);
                 currentHighlights.push(span);
@@ -1031,10 +1101,10 @@ function highlightMultipleTerms(terms, colors, diacriticsEnabled = true) {
 
     highlightsByTerm = {};
     currentHighlightIndex = {};
-    
+
     document.querySelectorAll('.zoocage-highlight').forEach(mark => {
         const fullTerm = mark.getAttribute('data-full-term');
-        
+
         if (fullTerm) {
             if (!highlightsByTerm[fullTerm]) {
                 highlightsByTerm[fullTerm] = [];
@@ -1042,7 +1112,7 @@ function highlightMultipleTerms(terms, colors, diacriticsEnabled = true) {
             highlightsByTerm[fullTerm].push(mark);
         }
     });
-    
+
 }
 
 function clearAllHighlights() {
@@ -1054,7 +1124,7 @@ function clearAllHighlights() {
         }
     });
     currentHighlights = [];
-    
+
     document.querySelectorAll('.zoocage-highlight').forEach(mark => {
         const parent = mark.parentNode;
         if (parent) {
@@ -1062,22 +1132,22 @@ function clearAllHighlights() {
             parent.replaceChild(textNode, mark);
         }
     });
-    
+
     const styleTag = document.getElementById('zoocage-highlight-styles');
     if (styleTag) {
         styleTag.remove();
     }
-    
+
     pageSearchIndex = null;
     pageIndexData = [];
-    currentHighlightIndex = {}; 
+    currentHighlightIndex = {};
     highlightsByTerm = {};
 }
 
 function jumpToNextHighlight(term) {
-    
+
     let termMarks = highlightsByTerm[term];
-    
+
     if (!termMarks || termMarks.length === 0) {
         termMarks = [];
         document.querySelectorAll('.zoocage-highlight').forEach(mark => {
@@ -1086,27 +1156,27 @@ function jumpToNextHighlight(term) {
                 termMarks.push(mark);
             }
         });
-        
+
         if (termMarks.length > 0) {
             highlightsByTerm[term] = termMarks;
         }
     }
-        
+
     if (termMarks.length === 0) {
         return;
     }
-    
+
     if (currentHighlightIndex[term] === undefined) {
         currentHighlightIndex[term] = 0;
     } else {
         currentHighlightIndex[term] = (currentHighlightIndex[term] + 1) % termMarks.length;
     }
-    
+
     const currentIndex = currentHighlightIndex[term];
     const currentMark = termMarks[currentIndex];
-        
+
     scrollToHighlight(currentMark);
-    
+
     browser.runtime.sendMessage({
         action: 'updateHighlightPosition',
         term: term,
@@ -1119,11 +1189,11 @@ function scrollToHighlight(mark) {
     document.querySelectorAll('mark.zoocage-highlight.current-match').forEach(el => {
         el.classList.remove('current-match');
     });
-    
+
     mark.classList.add('current-match');
-    
+
     mark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-    
+
     setTimeout(() => {
         mark.classList.remove('current-match');
     }, 5000);
@@ -1138,28 +1208,28 @@ function getContrastColor(hexColor) {
     const r = parseInt(hex.substr(0, 2), 16);
     const g = parseInt(hex.substr(2, 2), 16);
     const b = parseInt(hex.substr(4, 2), 16);
-    
+
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    
+
     return luminance > 0.5 ? '#000000' : '#EBEAE4';
 }
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'highlightMultipleTerms') {
         window.zoocageCJKMode = message.cjkMode || false;
-        
+
         clearAllHighlights();
         highlightMultipleTerms(message.terms, message.colors, message.diacriticsEnabled ?? true);
         sendResponse({ success: true });
         return true;
     }
-    
+
     if (message.action === 'clearHighlights') {
         clearAllHighlights();
         sendResponse({ success: true });
         return true;
     }
-    
+
     if (message.action === 'jumpToNextHighlight') {
         jumpToNextHighlight(message.term);
         sendResponse({ success: true });
@@ -1173,22 +1243,22 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 (async function initAutoHighlight() {
-    const { 
-        highlightEnabled = false, 
-        highlightTerms = [], 
+    const {
+        highlightEnabled = false,
+        highlightTerms = [],
         highlightPaletteIndex = 0,
         diacriticsEnabled = true,
         cjkEnabled = false
     } = await browser.storage.local.get([
-        'highlightEnabled', 
-        'highlightTerms', 
+        'highlightEnabled',
+        'highlightTerms',
         'highlightPaletteIndex',
         'diacriticsEnabled',
         'cjkEnabled'
     ]);
-    
+
     if (!highlightEnabled || highlightTerms.length === 0) return;
-    
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             applyHighlights(highlightTerms, highlightPaletteIndex);
@@ -1199,11 +1269,11 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 })();
 
 async function applyHighlights(terms, paletteIndex) {
-    const { 
+    const {
         diacriticsEnabled = true,
         cjkEnabled = false
     } = await browser.storage.local.get(['diacriticsEnabled', 'cjkEnabled']);
-    
+
     const colorPalettes = [
     ["#00b9e5", "#38d430", "#e3e82b", "#ffab4d", "#ff3f3f", "#ef2bc1", "#bc13fe", "#a8a895", "#d4b896", "#f4e4a6"],
     ['#958AAA','#F7B169','#FFE5AC','#97B1C0','#047593','#47657f','#9aaaa0','#dcdbd9','#779482','#559d31','#bed7d1','#f2cd78','#bf9e71','#d88760','#bc6446','#87cffb','#4c9eed','#f2a45f','#f9d6a5','#c09a6c'],
@@ -1228,11 +1298,11 @@ async function applyHighlights(terms, paletteIndex) {
     ['#ff1744','#f50057','#d500f9','#651fff','#3d5afe','#2979ff','#00b0ff','#00e5ff','#1de9b6','#00e676','#76ff03','#c6ff00','#ffea00','#ffc400','#ff9100','#ff3d00'],
     ['#ff8a80','#ff80ab','#ea80fc','#b388ff','#8c9eff','#82b1ff','#80d8ff','#84ffff','#a7ffeb','#b9f6ca','#ccff90','#f4ff81','#ffff8d','#ffe57f','#ffd180','#ff9e80'],
 ];
-    
+
     const colors = colorPalettes[paletteIndex] || colorPalettes[0];
 
     window.zoocageCJKMode = cjkEnabled;
-    
+
     setTimeout(() => {
         highlightMultipleTerms(terms, colors, diacriticsEnabled);
     }, 100);
@@ -1240,7 +1310,7 @@ async function applyHighlights(terms, paletteIndex) {
 
 browser.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
-    
+
     if (changes.highlightEnabled) {
         if (changes.highlightEnabled.newValue === false) {
             clearAllHighlights();
@@ -1252,10 +1322,10 @@ browser.storage.onChanged.addListener((changes, area) => {
             });
         }
     }
-    
+
     if (changes.highlightTerms || changes.highlightPaletteIndex || changes.diacriticsEnabled || changes.cjkEnabled) {
-        browser.storage.local.get(['highlightEnabled', 'highlightTerms', 'highlightPaletteIndex']).then(({ 
-            highlightEnabled = false, 
+        browser.storage.local.get(['highlightEnabled', 'highlightTerms', 'highlightPaletteIndex']).then(({
+            highlightEnabled = false,
             highlightTerms = [],
             highlightPaletteIndex = 0
         }) => {
@@ -1271,7 +1341,7 @@ browser.storage.onChanged.addListener((changes, area) => {
     let overlayEl = null;
 
     async function applyGrayscale() {
-        const { grayscaleEnabled = false } = 
+        const { grayscaleEnabled = false } =
             await browser.storage.local.get('grayscaleEnabled');
 
         if (!overlayEl) {

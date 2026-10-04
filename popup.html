@@ -104,6 +104,11 @@
                     <input type="checkbox" id="spaFix">
                     <span title="Retains 🌙 on sites like github">Single Page App</span>
                 </label>
+
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="skipDark">
+                    <span title="Don't invert pages that are already dark (e.g. GitHub with system dark mode)">Skip dark sites</span>
+                </label>
             </h3>
         </div>
 
@@ -135,7 +140,11 @@
         <div id="siteControlsSection" class="section">
             <div class="site-controls-grid">
                 <div class="control-column">
-                    <select id="blockSiteSelect"></select>
+                    <div style="display:flex; gap:4px; align-items:center;">
+                        <select id="blockSiteSelect"></select>
+                        <button id="removeSiteBtn" class="blocking-icon-btn"
+                                title="Remove selected site from Dark Mode, Blur, Content Blocking and Right-click lists">🗑️</button>
+                    </div>
                 </div>
                 <div class="control-column">
                     <div class="toggle-group">
@@ -191,7 +200,9 @@
                 <button class="tab-limit-btn active" data-limit="3">3</button>
                 <button class="tab-limit-btn" data-limit="4">4</button>
                 <button class="tab-limit-btn" data-limit="5">5</button>
-                <button class="tab-limit-btn" data-limit="5">6</button>
+                <button class="tab-limit-btn" data-limit="6">6</button>
+                <button class="tab-limit-btn" data-limit="7">7</button>
+                <button class="tab-limit-btn" data-limit="8">8</button>
                 <button id="editTextBtn" class="blocking-icon-btn" title="Edit Site Text">✏️</button>
                 <button id="hoverZoomToggle" class="blocking-icon-btn">🔎</button>
                 <button id="pinCalcBtn" class="pin-calc-btn top-page" title="Open in a New Tab">📍</button>
@@ -244,11 +255,17 @@
                     <input type="checkbox" id="hideAnnotations">
                     <span title="Hide 📺 Video Annotations">Annotations</span>
                 </label>
-                <span class="nav-separator">&#x2007;</span>
-                <span class="section-label">Disable: </span>
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="hideSponsored">
+                    <span title="Hide 📺 Sponsored ads in search, home and sidebar, and stop their previews from playing">Sponsored</span>
+                </label>
                 <label class="blocking-option-inline">
                     <input type="checkbox" id="disableAutoplay">
-                    <span title="Disable 📺 Autoplay"> Autoplay</span>
+                    <span title="Disable Autoplay">🚫Autoplay</span>
+                </label>
+                <label class="blocking-option-inline">
+                    <input type="checkbox" id="defaultAudioTrack">
+                    <span title="Default audio track instead of Auto-dubbed">Original audio</span>
                 </label>
             </h3>
         </div>
@@ -798,7 +815,7 @@
 
                 <p><span style="color: var(--accent-color)">Tab Count Display</span> shows currently loaded tabs. Turns red when over the limit. Click to see current count.</p>
 
-                <p><span style="color: var(--accent-color)">Tab Limit Buttons </span><span class="help-label">1 2 3 4 5 6</span> sets how many tabs to keep loaded. Tabs with audio playing and blank tabs are never unloaded.</p>
+                <p><span style="color: var(--accent-color)">Tab Limit Buttons </span><span class="help-label">1 2 3 4 5 6 7 8</span> sets how many tabs to keep loaded. Tabs with audio playing and blank tabs are never unloaded.</p>
 
                 <h3 span class="help-example">Edit, Bar Colors, Image Zoom, Grayscale, Autoplay</h3>
 
@@ -818,9 +835,11 @@
 
                 <p><span style="color: var(--accent-color)">Default Quality 📺</span> sets preferred video quality for YouTube videos. Options range from 144p to 2160p (4K).</p>
 
-                <p><span style="color: var(--accent-color)">Hide Elements</span> removes distracting elements from YouTube: <span class="help-label">Recommended</span> sidebar videos, <span class="help-label">Shorts</span>, <span class="help-label">Comments</span>, <span class="help-label">Explore</span> page, <span class="help-label">More from YouTube</span> section, and <span class="help-label">End Cards</span> recommendations.</p>
+                <p><span style="color: var(--accent-color)">Hide Elements</span> removes distracting elements from YouTube: <span class="help-label">Recommended</span> sidebar videos, <span class="help-label">Shorts</span>, <span class="help-label">Comments</span>, <span class="help-label">Explore</span> page, <span class="help-label">More from YouTube</span> section, <span class="help-label">Sponsored Ads</span>and <span class="help-label">End Cards</span> recommendations.</p>
 
                 <p><span style="color: var(--accent-color)">Disable Autoplay</span> prevents YouTube from automatically playing the next video.</p>
+
+                <p><span style="color: var(--accent-color)">Original audio</span> automatically selects the original audio track rather than the auto-dubbed audio.</p>
 
                 <h3 span class="help-example">Clip as Markdown</h3>
 

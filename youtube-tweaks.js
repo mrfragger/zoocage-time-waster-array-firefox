@@ -11,6 +11,8 @@
     disableAutoplay: false,
     hideEndCards: false,
     hideAnnotations: false,
+    defaultAudioTrack: false,
+    hideSponsored: false,
   };
 
   let styleElements = {};
@@ -99,6 +101,90 @@
     appendScriptToDOM(scriptText);
   }
 
+  function syncAudioScript(enabled) {
+    const flag = enabled ? "true" : "false";
+    const scriptText = `
+      (function () {
+        if (window.ytAudio) {
+          window.ytAudio.enabled = ${flag};
+          window.ytAudio.run();
+          return;
+        }
+        const ytAudio = {
+          enabled: ${flag},
+          timer: null,
+
+          info(track) {
+            const out = { id: '', isDefault: false, text: '' };
+            const seen = new Set();
+            const walk = (o, d) => {
+              if (!o || typeof o !== 'object' || d > 3 || seen.has(o)) return;
+              seen.add(o);
+              for (const k in o) {
+                let v;
+                try { v = o[k]; } catch (e) { continue; }
+                if (k === 'audioIsDefault' && v === true) out.isDefault = true;
+                if (k === 'id' && typeof v === 'string' && !out.id) out.id = v;
+                if (typeof v === 'string') out.text += ' ' + v.toLowerCase();
+                else if (v && typeof v === 'object') walk(v, d + 1);
+              }
+            };
+            walk(track, 0);
+            return out;
+          },
+
+          pickOriginal(tracks) {
+            const infos = tracks.map((t) => ({ t: t, i: this.info(t) }));
+            let hit = infos.find((x) => x.i.isDefault);
+            if (!hit) hit = infos.find((x) => /original/.test(x.i.text));
+            if (!hit) {
+              const nonDub = infos.filter((x) => !/dubbed/.test(x.i.text));
+              if (nonDub.length === 1) hit = nonDub[0];
+            }
+            return hit || null;
+          },
+
+          apply(player) {
+            try {
+              const tracks = player.getAvailableAudioTracks();
+              if (!tracks || tracks.length < 2) return;
+              const target = this.pickOriginal(tracks);
+              if (!target) return;
+              const cur = player.getAudioTrack && player.getAudioTrack();
+              const curId = cur ? this.info(cur).id : '';
+              const same = curId && target.i.id ? curId === target.i.id : cur === target.t;
+              if (!same) player.setAudioTrack(target.t);
+            } catch (e) {}
+          },
+
+          run() {
+            clearInterval(this.timer);
+            if (!this.enabled) return;
+            let tries = 0;
+            this.timer = setInterval(() => {
+              tries++;
+              if (tries > 30) { clearInterval(this.timer); return; }
+              const player = document.querySelector('.html5-video-player');
+              if (!player || typeof player.getAvailableAudioTracks !== 'function') return;
+              let tracks;
+              try { tracks = player.getAvailableAudioTracks(); } catch (e) { return; }
+              if (!tracks || tracks.length < 2) return;
+              clearInterval(this.timer);
+              this.apply(player);
+              setTimeout(() => this.apply(player), 2500);
+            }, 500);
+          }
+        };
+        window.ytAudio = ytAudio;
+        document.addEventListener('yt-navigate-finish', () => {
+          setTimeout(() => ytAudio.run(), 300);
+        });
+        ytAudio.run();
+      })();
+    `;
+    appendScriptToDOM(scriptText);
+  }
+
   function applyDarkSearchFilters() {
     if (!styleElements.darkFilters) {
       const style = document.createElement("style");
@@ -184,9 +270,11 @@
     applyHideEndCards();
     applyHideAnnotations();
     applyDarkSearchFilters();
+    applyHideSponsored();
 
     const quality = qualityMap[settings.defaultQuality] || "medium";
     initQualityScript(quality);
+    syncAudioScript(settings.defaultAudioTrack);
 
     const anyOptionChecked =
       settings.hideRecommended ||
@@ -506,51 +594,170 @@
       }
   }
 
+  let autoplayTimer = null;
+  let autoplayNavHandler = null;
+
   function applyDisableAutoplay() {
     if (autoplayObserver) {
       autoplayObserver.disconnect();
       autoplayObserver = null;
     }
+    clearInterval(autoplayTimer);
+    autoplayTimer = null;
 
-    if (!settings.disableAutoplay) {
-      return;
+    if (autoplayNavHandler) {
+      document.removeEventListener("yt-navigate-finish", autoplayNavHandler);
+      autoplayNavHandler = null;
     }
 
-    const checkAutoplay = () => {
-      const autoplayButton = document.querySelector(
-        ".ytp-autonav-toggle-button",
-      );
-      if (autoplayButton) {
-        const isEnabled =
-          autoplayButton.getAttribute("aria-checked") === "true";
-        if (isEnabled) {
-          autoplayButton.click();
+    if (!settings.disableAutoplay) return;
+
+    // Returns true once the toggle was found, so polling can stop
+    const turnOff = () => {
+      if (location.pathname !== "/watch") return false;
+      const btn = document.querySelector(".ytp-autonav-toggle-button");
+      if (!btn) return false;
+      if (btn.getAttribute("aria-checked") === "true") btn.click();
+      return true;
+    };
+
+    const start = () => {
+      clearInterval(autoplayTimer);
+      autoplayTimer = null;
+      if (location.pathname !== "/watch") return; // never touch search, home, etc.
+      let tries = 0;
+      autoplayTimer = setInterval(() => {
+        tries++;
+        if (turnOff() || tries >= 20) {
+          clearInterval(autoplayTimer);
+          autoplayTimer = null;
         }
-      }
+      }, 500);
     };
 
-    setTimeout(checkAutoplay, 2000);
+    autoplayNavHandler = () => setTimeout(start, 300);
+    document.addEventListener("yt-navigate-finish", autoplayNavHandler);
+    start();
+  }
 
-    const attachObserver = () => {
-      const player =
-        document.querySelector("#movie_player") ||
-        document.querySelector(".html5-video-player");
-      if (player) {
-        autoplayObserver = new MutationObserver(() => {
-          setTimeout(checkAutoplay, 500);
-        });
-        autoplayObserver.observe(player, {
-          childList: true,
-          subtree: true,
-          attributes: true,
-          attributeFilter: ["aria-checked"],
-        });
-      } else {
-        setTimeout(attachObserver, 1000);
+  let sponsoredObserver = null;
+  let sponsoredTimer = null;
+
+  function applyHideSponsored() {
+    if (settings.hideSponsored) {
+      if (!styleElements.sponsored) {
+        const style = document.createElement("style");
+        style.id = "zoocage-hide-sponsored";
+        const selectors = [
+          "ytd-ad-slot-renderer",
+          "ytd-in-feed-ad-layout-renderer",
+          "ytd-promoted-sparkles-web-renderer",
+          "ytd-promoted-video-renderer",
+          "ytd-display-ad-renderer",
+          "ytd-search-pyv-renderer",
+          "ytd-banner-promo-renderer",
+          "ytd-statement-banner-renderer",
+          "ytd-brand-video-singleton-renderer",
+          "ytd-brand-video-shelf-renderer",
+          "ytd-companion-slot-renderer",
+          "ytd-action-companion-ad-renderer",
+          "#masthead-ad",
+          "#player-ads",
+          '[data-zc-ad="1"]',
+          "ytd-rich-item-renderer:has(ytd-ad-slot-renderer)",
+          "ytd-rich-section-renderer:has(ytd-ad-slot-renderer)",
+          "ytd-item-section-renderer:has(> #contents > ytd-ad-slot-renderer)",
+          "ytd-item-section-renderer:has(> #contents > ytd-search-pyv-renderer)",
+        ];
+        style.textContent = selectors
+          .map((s) => `${s} { display: none !important; }`)
+          .join("\n");
+        (document.head || document.documentElement).appendChild(style);
+        styleElements.sponsored = style;
       }
-    };
 
-    attachObserver();
+      killSponsoredVideos();
+      scanSponsored();
+
+      if (!sponsoredObserver) {
+        const start = () => {
+          if (!document.body || sponsoredObserver) return;
+          sponsoredObserver = new MutationObserver(() => {
+            clearTimeout(sponsoredTimer);
+            sponsoredTimer = setTimeout(() => {
+              scanSponsored();
+              killSponsoredVideos();
+            }, 400);
+          });
+          sponsoredObserver.observe(document.body, { childList: true, subtree: true });
+        };
+        if (document.body) start();
+        else document.addEventListener("DOMContentLoaded", start, { once: true });
+      }
+    } else {
+      if (styleElements.sponsored) {
+        styleElements.sponsored.remove();
+        delete styleElements.sponsored;
+      }
+      if (sponsoredObserver) {
+        sponsoredObserver.disconnect();
+        sponsoredObserver = null;
+      }
+      clearTimeout(sponsoredTimer);
+      document.querySelectorAll('[data-zc-ad="1"]').forEach((el) => {
+        el.removeAttribute("data-zc-ad");
+        el.style.removeProperty("display");
+      });
+    }
+  }
+
+  function hideEl(el) {
+    el.setAttribute("data-zc-ad", "1");
+    el.style.setProperty("display", "none", "important");
+  }
+
+  function scanSponsored() {
+    const AD_ROOT =
+      "ytd-ad-slot-renderer, ytd-in-feed-ad-layout-renderer, ytd-search-pyv-renderer, " +
+      "ytd-promoted-sparkles-web-renderer, ytd-display-ad-renderer";
+
+    document
+      .querySelectorAll("ad-badge-view-model, feed-ad-metadata-view-model")
+      .forEach((a) => {
+        let root = a.closest(AD_ROOT);
+        while (root && root.parentElement && root.parentElement.closest(AD_ROOT)) {
+          root = root.parentElement.closest(AD_ROOT);
+        }
+        if (!root) return;
+        hideEl(root);
+
+        // Hide the wrapper section too if the ad was its only content
+        const section = root.closest("ytd-item-section-renderer");
+        if (section) {
+          const contents = section.querySelector(":scope > #contents");
+          const visible = contents
+            ? [...contents.children].filter((c) => c.style.display !== "none")
+            : [];
+          if (contents && visible.length === 0) hideEl(section);
+        }
+      });
+  }
+
+  // Mute and pause video previews inside hidden ads so they can't make sound
+  function killSponsoredVideos() {
+    document
+      .querySelectorAll(
+        '[data-zc-ad="1"] video, ytd-ad-slot-renderer video, ' +
+        "ytd-in-feed-ad-layout-renderer video, ytd-promoted-sparkles-web-renderer video, " +
+        "ytd-display-ad-renderer video, ytd-search-pyv-renderer video",
+      )
+      .forEach((v) => {
+        try {
+          v.muted = true;
+          v.pause();
+          v.removeAttribute("autoplay");
+        } catch (e) {}
+      });
   }
 
   function areSameVideo(previousUrl, newUrl) {
@@ -577,9 +784,6 @@
       lastUrl = currentUrl;
       setTimeout(() => {
         updatePlayerQuality();
-        if (settings.disableAutoplay) {
-          applyDisableAutoplay();
-        }
       }, 1000);
     }
   });
@@ -635,6 +839,12 @@
       if (oldSettings.defaultQuality !== settings.defaultQuality) {
         const quality = qualityMap[settings.defaultQuality] || "medium";
         setQuality(quality);
+      }
+      if (oldSettings.defaultAudioTrack !== settings.defaultAudioTrack) {
+        syncAudioScript(settings.defaultAudioTrack);
+      }
+      if (oldSettings.hideSponsored !== settings.hideSponsored) {
+        applyHideSponsored();
       }
     }
   });
