@@ -509,7 +509,7 @@ input[type="number"]:focus {
     color: var(--text-color);
     cursor: pointer;
     transition: all 0.2s;
-    margin-left: 4px;
+    margin-left: 1px;
 }
 
 .tab-limit-btn.active {
