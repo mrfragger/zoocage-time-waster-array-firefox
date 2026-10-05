@@ -198,6 +198,33 @@ class SnippetStorage {
 
 const snippetStorage = new SnippetStorage();
 
+function extractFrontmatter(code) {
+  const m = code.match(/^---\n([\s\S]*?)\n---\n*/);
+  if (!m) return { headerHTML: "", body: code, fields: null };
+
+  const fields = {};
+  m[1].split("\n").forEach((line) => {
+    const kv = line.match(/^(\w+):\s*"?(.*?)"?\s*$/);
+    if (kv) fields[kv[1]] = kv[2];
+  });
+
+  const parts = [];
+  if (fields.title) parts.push(`<h5>${escapeHtml(fields.title)}</h5>`);
+  if (fields.author) parts.push(`<p><em>${escapeHtml(fields.author)}</em></p>`);
+  if (fields.url) {
+    parts.push(
+      `<p><a href="${escapeHtml(fields.url)}">${escapeHtml(fields.url)}</a></p>`
+    );
+  }
+  if (fields.date) parts.push(`<p><small>${escapeHtml(fields.date)}</small></p>`);
+
+  return {
+    headerHTML: parts.join("\n"),
+    body: code.slice(m[0].length),
+    fields,
+  };
+}
+
 function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
@@ -391,8 +418,8 @@ function buildHighlightPaletteScript(termColorMap) {
   }
 
   function apply() {
-    document.querySelectorAll('mark.zoocage-highlight').forEach(function (m) {
-      var i = parseInt(m.getAttribute('data-hl-i'), 10);
+    document.querySelectorAll('mark[data-h]').forEach(function (m) {
+      var i = parseInt(m.getAttribute('data-h'), 10);
       var c = idx < 0 ? ORIG[i] : PALETTES[idx][i % PALETTES[idx].length];
       if (!c) return;
       m.style.backgroundColor = c;
@@ -2124,6 +2151,14 @@ function setupEventListeners() {
     saveNoImagesBtnTop.addEventListener("click", saveSnippetWithoutImages);
   }
 
+  window.addEventListener("resize", syncPaneAlignment);
+
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(syncPaneAlignment);
+    ro.observe(document.getElementById("highlightEditor"));
+    ro.observe(document.getElementById("codePreview"));
+  }
+
   document
     .getElementById("saveHtmlBtnTop")
     .addEventListener("click", async () => {
@@ -2782,7 +2817,9 @@ async function renderMarkdownPreview() {
     return !BAD_PROTO_RE.test(str) || GOOD_DATA_RE.test(str);
   };
 
-  let rendered = md.render(code);
+  const fm = extractFrontmatter(code);
+  code = fm.body;
+  let rendered = fm.headerHTML + md.render(code);
 
   let highlightTerms = null;
   let cjkMode = false;
@@ -3031,7 +3068,9 @@ async function generateMarkdownHTMLWithThemes(
     );
   };
 
-  let rendered = md.render(code);
+  const fm = extractFrontmatter(code);
+  code = fm.body;
+  let rendered = fm.headerHTML + md.render(code);
 
   if (highlightedTerms && Object.keys(highlightedTerms).length > 0) {
     rendered = applyHighlightsWithColors(rendered, highlightedTerms, cjkMode);
@@ -3040,10 +3079,12 @@ async function generateMarkdownHTMLWithThemes(
   const tempMarkDiv = document.createElement("div");
   tempMarkDiv.innerHTML = rendered;
   tempMarkDiv.querySelectorAll("mark.zoocage-highlight").forEach((mark) => {
+    const idx = mark.getAttribute("data-hl-i");
     const term = mark.textContent.toLowerCase();
-    const safeClass = "zt-" + term.replace(/[^a-z0-9]/g, "_");
-    mark.classList.add(safeClass);
+    mark.removeAttribute("class");
     mark.removeAttribute("style");
+    mark.setAttribute("data-h", idx);
+    // keep the term text; the palette button can still find it via data-h
   });
   rendered = tempMarkDiv.innerHTML;
 
@@ -3125,6 +3166,14 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
     }
   }
 
+  const palette = Object.values(highlightedTerms || {});
+  const paletteCSS = palette
+    .map((color, i) => {
+      const tc = getContrastColor(color);
+      return `mark[data-h="${i}"]{background-color:${color};color:${tc};padding:2px 4px;border-radius:3px;}`;
+    })
+    .join("\n");
+
   const themeOptions = themesToEmbed
     .map(
       (t) =>
@@ -3157,6 +3206,7 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
         a { color:${keywordColor}; text-decoration:none; }
         a:hover { color:${stringColor}; text-decoration:underline; }
         h1,h2,h3,h4,h5,h6 { margin-top:1.5rem; margin-bottom:0.5rem; color:${titleColor}; }
+        h5 { font-size: 1em; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.4rem; }
         h1 { font-size:1.25em; border-bottom:2px solid rgba(128,128,128,0.15); padding-bottom:0.3rem; }
         h2 { font-size:1.5em; border-bottom:1px solid rgba(128,128,128,0.15); padding-bottom:0.3rem; }
         h3 { font-size:1.25em; }
@@ -3165,9 +3215,13 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
         hr { border:none; border-top:1px solid rgba(128,128,128,0.15); margin:2rem 0; }
         strong { color:${titleColor}; }
         em { color:${stringColor}; }
-        .hide-highlights mark.zoocage-highlight { background-color:transparent !important; color:inherit !important; padding:0 !important; }
-        body.state-freq .zoocage-highlight { background-color:transparent !important; color:inherit !important; padding:0 !important; }
-        body.state-off .zoocage-highlight { background-color:transparent !important; color:inherit !important; padding:0 !important; }
+        .hide-highlights mark[data-h],
+        body.state-freq mark[data-h],
+        body.state-off mark[data-h] {
+            background-color: transparent !important;
+            color: inherit !important;
+            padding: 0 !important;
+        }
         #freq-panel { display:none; margin-top:3rem; padding-top:1.5rem; border-top:1px solid rgba(128,128,128,0.2); font-size:0.82rem; line-height:1.8; }
         body.state-freq #freq-panel { display:block; }
         #freq-panel .freq-label { color:#858585; font-size:0.8rem; margin-bottom:0.5rem; }
@@ -3652,10 +3706,17 @@ async function doExportHTML(
   activeThemeHref,
   exportNotes = true,
 ) {
-  const hlTerms =
-    currentSnippetIndex !== null && snippets[currentSnippetIndex]
-      ? snippets[currentSnippetIndex].highlightedTerms || {}
-      : {};
+  const hlTerms = getEditorTerms();
+
+  let cjkMode = false;
+  if (currentSnippetIndex !== null && snippets[currentSnippetIndex]) {
+    cjkMode = snippets[currentSnippetIndex].cjkMode || false;
+  } else {
+    const ta = document.getElementById("snippetCode");
+    if (ta.dataset.pendingCjkMode !== undefined) {
+      cjkMode = ta.dataset.pendingCjkMode === "true";
+    }
+  }
   const title =
     document.getElementById("snippetTitle").value || "markdown-export";
   const safeTitle = title.replace(/[<>:"/\\|?*]/g, "-");
@@ -3725,28 +3786,21 @@ async function doExportHTML(
     );
   };
 
-  let rendered = md.render(code);
+  const fm = extractFrontmatter(code);
+  code = fm.body;
+  let rendered = fm.headerHTML + md.render(code);
 
-  if (currentSnippetIndex !== null) {
-    const snippet = snippets[currentSnippetIndex];
-    if (
-      snippet.highlightedTerms &&
-      Object.keys(snippet.highlightedTerms).length > 0
-    ) {
-      rendered = applyHighlightsWithColors(
-        rendered,
-        snippet.highlightedTerms,
-        snippet.cjkMode || false,
-      );
-    }
+  if (hlTerms && Object.keys(hlTerms).length > 0) {
+    rendered = applyHighlightsWithColors(rendered, hlTerms, cjkMode);
   }
 
   const tempMarkDiv = document.createElement("div");
   tempMarkDiv.innerHTML = rendered;
   tempMarkDiv.querySelectorAll("mark.zoocage-highlight").forEach((mark) => {
-    const term = mark.textContent.toLowerCase();
-    const safeClass = "zt-" + term.replace(/[^a-z0-9]/g, "_");
-    mark.classList.add(safeClass);
+    const idx = mark.getAttribute("data-hl-i");
+    mark.removeAttribute("class");
+    mark.removeAttribute("style");
+    if (idx !== null) mark.setAttribute("data-h", idx);
   });
   rendered = tempMarkDiv.innerHTML;
 
@@ -3843,6 +3897,14 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
     }
   }
 
+  const palette = Object.values(hlTerms || {});
+  const paletteCSS = palette
+    .map((color, i) => {
+      const tc = getContrastColor(color);
+      return `mark[data-h="${i}"]{background-color:${color};color:${tc};padding:2px 4px;border-radius:3px;}`;
+    })
+    .join("\n");
+
   const themeOptions = themesToEmbed
     .map(
       (t) =>
@@ -3858,8 +3920,8 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
     <title>${escapeHtml(title)}</title>
     <style>
         ${allThemeCSS}
-
         ${themeBodyCSS}
+        ${paletteCSS}
 
         body {
             font-family: '${markdownFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -3885,6 +3947,7 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
         a { color:${keywordColor}; text-decoration:none; }
         a:hover { color:${stringColor}; text-decoration:underline; }
         h1,h2,h3,h4,h5,h6 { margin-top:1.5rem; margin-bottom:0.5rem; color:${titleColor}; }
+        h5 { font-size: 1em; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.4rem; }
         h1 { font-size:1.6em; border-bottom:2px solid rgba(128,128,128,0.15); padding-bottom:0.3rem; }
         h2 { font-size:1.5em; border-bottom:1px solid rgba(128,128,128,0.15); padding-bottom:0.3rem; }
         h3 { font-size:1.25em; }
@@ -3894,18 +3957,9 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
         strong { color:${titleColor}; }
         em { color:${stringColor}; }
 
-        .hide-highlights mark.zoocage-highlight {
-            background-color: transparent !important;
-            color: inherit !important;
-            padding: 0 !important;
-        }
-
-        body.state-freq .zoocage-highlight {
-            background-color: transparent !important;
-            color: inherit !important;
-            padding: 0 !important;
-        }
-        body.state-off .zoocage-highlight {
+        .hide-highlights mark[data-h],
+        body.state-freq mark[data-h],
+        body.state-off mark[data-h] {
             background-color: transparent !important;
             color: inherit !important;
             padding: 0 !important;
@@ -4297,6 +4351,7 @@ function renderHighlightEditor() {
     chip.appendChild(x);
     chips.appendChild(chip);
   });
+  syncPaneAlignment();
 }
 
 function applyEditedTerms(terms) {
@@ -4532,6 +4587,31 @@ function handleNotesInput() {
   }, 300);
 }
 
+let paneSyncRaf = null;
+
+function syncPaneAlignment() {
+  cancelAnimationFrame(paneSyncRaf);
+  paneSyncRaf = requestAnimationFrame(() => {
+    const ta = document.getElementById("snippetCode");
+    const pv = document.getElementById("codePreview");
+    const he = document.getElementById("highlightEditor");
+    if (!ta || !pv) return;
+
+    if (!isSplitView || !document.getElementById("splitContainer")) {
+      ta.style.marginTop = "";
+      return;
+    }
+
+    let heHeight = 0;
+    if (he && he.style.display !== "none") {
+      const r = he.getBoundingClientRect();
+      if (r && isFinite(r.height)) heHeight = r.height;
+    }
+
+    ta.style.marginTop = Math.max(0, Math.round(heHeight)) + "px";
+  });
+}
+
 function toggleSplitView() {
   const editorContainer = document.getElementById("editorContainer");
   const toggleBtn = document.getElementById("toggleSplitView");
@@ -4571,6 +4651,7 @@ function toggleSplitView() {
     splitContainer.appendChild(rightColumn);
 
     showNotification("Split view enabled");
+    syncPaneAlignment();
   } else {
     toggleBtn.textContent = "⬍";
     toggleBtn.title = "Enable split view (vertical)";
@@ -4591,6 +4672,8 @@ function toggleSplitView() {
     codePreview.style.height = "";
     codePreview.style.minHeight = "";
     codePreview.style.maxHeight = "";
+
+    document.getElementById("snippetCode").style.marginTop = "";
 
     showNotification("Split view disabled");
   }
@@ -7466,13 +7549,6 @@ function processWords(text) {
   }
 
   output.sort((a, b) => b.freq - a.freq);
-
-  output.forEach((item) => {
-    const charCodes = item.word
-      .split("")
-      .map((c) => c.charCodeAt(0))
-      .join(",");
-  });
 
   return output.slice(0, 2000);
 }
