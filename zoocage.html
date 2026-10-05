@@ -182,8 +182,18 @@
                 <div class="preview-header">
                     <label>Preview</label>
                     <div class="preview-actions">
+                        <span id="hlPaletteLabel" style="color:#858585; font-size:0.7rem; align-self:center;">palette #1</span>
+                        <button class="secondary" id="hlColorsBtn" title="Highlight Colors" style="font-size:1.1rem; padding:0.35rem 0.6rem; line-height:1;">🟫</button>
                         <button class="secondary scroll-btn" id="scrollToNotesFromPreview">↓ Notes</button>
                     </div>
+                </div>
+                <div id="highlightEditor" style="display:none; margin-bottom:0.5rem;">
+                    <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.4rem;">
+                        <input type="text" id="hlTermInput" placeholder='Add highlight terms (space separated, "exact phrase" ok)...' style="flex:1; padding:0.35rem 0.5rem; font-size:0.85rem; background:#3c3c3c; border:1px solid #3e3e42; color:#d4d4d4; border-radius:4px;">
+                        <button class="secondary" id="hlAddBtn" style="padding:0.35rem 0.75rem; font-size:0.85rem;">Add</button>
+                        <button class="secondary" id="hlClearBtn" style="padding:0.35rem 0.75rem; font-size:0.85rem;" title="Remove all highlight terms">Clear</button>
+                    </div>
+                    <div id="hlTermChips" style="display:flex; flex-wrap:wrap; gap:0.25rem;"></div>
                 </div>
                 <div class="code-preview" id="codePreview"><em style="color: #858585;">Preview will appear here...</em></div>
             </div>

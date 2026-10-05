@@ -359,6 +359,61 @@ function loadWorkspaceView() {
   }
 }
 
+function buildHighlightButtonHTML(termColorMap) {
+  if (!termColorMap || Object.keys(termColorMap).length === 0) return "";
+  return `<button id="hl-colors-btn" title="Highlight colors">🟫</button>`;
+}
+
+function buildHighlightPaletteScript(termColorMap) {
+  if (!termColorMap || Object.keys(termColorMap).length === 0) return "";
+  const orig = Object.values(termColorMap);
+  return `<script>
+(function () {
+  var ORIG = ${JSON.stringify(orig)};
+  var PALETTES = ${JSON.stringify(HL_PALETTES)};
+  var idx = -1;
+  var btn = document.getElementById('hl-colors-btn');
+  if (!btn) return;
+
+  function contrast(c) {
+    var r, g, b;
+    if (c.charAt(0) === '#') {
+      var h = c.slice(1);
+      if (h.length === 3) h = h.replace(/./g, '$&$&');
+      r = parseInt(h.substr(0, 2), 16);
+      g = parseInt(h.substr(2, 2), 16);
+      b = parseInt(h.substr(4, 2), 16);
+    } else {
+      var m = c.match(/[0-9]+/g);
+      r = +m[0]; g = +m[1]; b = +m[2];
+    }
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5 ? '#000000' : '#EBEAE4';
+  }
+
+  function apply() {
+    document.querySelectorAll('mark.zoocage-highlight').forEach(function (m) {
+      var i = parseInt(m.getAttribute('data-hl-i'), 10);
+      var c = idx < 0 ? ORIG[i] : PALETTES[idx][i % PALETTES[idx].length];
+      if (!c) return;
+      m.style.backgroundColor = c;
+      m.style.color = contrast(c);
+    });
+    btn.title = idx < 0 ? 'Highlight colors: original' : 'Highlight colors: palette #' + (idx + 1);
+    sessionStorage.setItem('zoocage-hlpal', idx);
+  }
+
+  btn.addEventListener('click', function () {
+    idx = idx + 1 >= PALETTES.length ? -1 : idx + 1;
+    apply();
+  });
+
+  var saved = parseInt(sessionStorage.getItem('zoocage-hlpal'), 10);
+  if (!isNaN(saved) && saved < PALETTES.length) idx = saved;
+  apply();
+})();
+<\/script>`;
+}
+
 function compressText(text) {
   if (!text) return "";
 
@@ -2028,6 +2083,8 @@ function setupEventListeners() {
   document.getElementById("titleCase").addEventListener("click", titleCase);
   document.getElementById("scrollToTop").addEventListener("click", scrollToTop);
   document.getElementById("toggleSidebar").addEventListener("click", toggleSidebar);
+  document.getElementById("hlColorsBtn").addEventListener("click", cycleHlPalette);
+  loadHlPalette();
   document
     .getElementById("scrollToNotes")
     .addEventListener("click", scrollToNotes);
@@ -2232,6 +2289,24 @@ function setupEventListeners() {
     setTimeout(() => {
       handleNotesInput();
     }, 10);
+  });
+
+  const hlInput = document.getElementById("hlTermInput");
+  const addHl = () => {
+    addEditorTerms(hlInput.value);
+    hlInput.value = "";
+  };
+  document.getElementById("hlAddBtn").addEventListener("click", addHl);
+  hlInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addHl();
+    }
+  });
+  document.getElementById("hlClearBtn").addEventListener("click", () => {
+    if (Object.keys(getEditorTerms()).length === 0) return;
+    if (!confirm("Remove all highlight terms?")) return;
+    applyEditedTerms({});
   });
 
   setupDropdown("themeSelectorDark", true);
@@ -2762,6 +2837,7 @@ async function renderMarkdownPreview() {
 
   if (saveHtmlBtnTop) saveHtmlBtnTop.style.display = "inline-block";
   if (saveNoImagesBtnTop) saveNoImagesBtnTop.style.display = "inline-block";
+  renderHighlightEditor();
 }
 
 async function toggleMarkdownView() {
@@ -3107,6 +3183,7 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
 <body data-theme="${activeThemeName}" class="state-highlights">
     <div id="zoocage-toolbar">
         <button id="toggle-state-btn" title="Highlights → Freq Words → Off">🟧</button>
+        ${buildHighlightButtonHTML(highlightedTerms)}
         <div id="themeSwitcher" style="position:relative;">
             <div id="themeSelected" style="background:#3c3c3c;color:#d4d4d4;border:1px solid #555;border-radius:4px;padding:2px 8px;font-size:12px;cursor:pointer;user-select:none;min-width:120px;display:flex;justify-content:space-between;gap:6px;">${activeThemeName} <span>▼</span></div>
             <div id="themeOptions" style="display:none;position:absolute;right:0;top:100%;margin-top:2px;background:#3c3c3c;border:1px solid #555;border-radius:4px;z-index:2000;max-height:200px;overflow-y:auto;min-width:160px;">${themeOptions}</div>
@@ -3251,6 +3328,7 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
 
     })();
     <\/script>
+    ${buildHighlightPaletteScript(highlightedTerms)}
 </body>
 </html>`;
 }
@@ -3574,6 +3652,10 @@ async function doExportHTML(
   activeThemeHref,
   exportNotes = true,
 ) {
+  const hlTerms =
+    currentSnippetIndex !== null && snippets[currentSnippetIndex]
+      ? snippets[currentSnippetIndex].highlightedTerms || {}
+      : {};
   const title =
     document.getElementById("snippetTitle").value || "markdown-export";
   const safeTitle = title.replace(/[<>:"/\\|?*]/g, "-");
@@ -3898,6 +3980,7 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
 
     <div id="zoocage-toolbar">
         <button id="toggle-state-btn" title="Highlights → Freq Words → Off">🟧</button>
+        ${buildHighlightButtonHTML(hlTerms)}
         <div id="themeSwitcher" style="position:relative;">
             <div id="themeSelected" style="background:#3c3c3c;color:#d4d4d4;border:1px solid #555;border-radius:4px;padding:2px 8px;font-size:12px;cursor:pointer;user-select:none;min-width:120px;display:flex;justify-content:space-between;gap:6px;">${activeThemeName} <span>▼</span></div>
             <div id="themeOptions" style="display:none;position:absolute;right:0;top:100%;margin-top:2px;background:#3c3c3c;border:1px solid #555;border-radius:4px;z-index:2000;max-height:200px;overflow-y:auto;min-width:160px;">${themesToEmbed.map((t) => `<div class="theme-option" data-theme="${t.name}" style="padding:4px 10px;font-size:12px;color:#d4d4d4;cursor:pointer;white-space:nowrap;">${t.name}</div>`).join("")}</div>
@@ -4051,6 +4134,7 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
 
 })();
 <\/script>
+${buildHighlightPaletteScript(hlTerms)}
 </body>
 </html>`;
 
@@ -4074,7 +4158,7 @@ function applyHighlightsWithColors(htmlContent, termColorMap, cjkMode = false) {
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = htmlContent;
 
-  function highlightTextNodes(node, term, bgColor) {
+  function highlightTextNodes(node, term, bgColor, termIdx) {
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent;
       let regex;
@@ -4093,7 +4177,7 @@ function applyHighlightsWithColors(htmlContent, termColorMap, cjkMode = false) {
 
         const highlightedText = text.replace(
           replaceRegex,
-          `<mark class="zoocage-highlight" style="background-color: ${bgColor}; color: ${textColor}; padding: 2px 4px; border-radius: 3px;">$1</mark>`,
+          `<mark class="zoocage-highlight" data-hl-i="${termIdx}" style="background-color: ${bgColor}; color: ${textColor}; padding: 2px 4px; border-radius: 3px;">$1</mark>`,
         );
 
         const span = document.createElement("span");
@@ -4107,16 +4191,139 @@ function applyHighlightsWithColors(htmlContent, termColorMap, cjkMode = false) {
       node.tagName !== "STYLE"
     ) {
       Array.from(node.childNodes).forEach((child) =>
-        highlightTextNodes(child, term, bgColor),
+        highlightTextNodes(child, term, bgColor, termIdx),
       );
     }
   }
 
-  Object.entries(termColorMap).forEach(([term, bgColor]) => {
-    highlightTextNodes(tempDiv, term, bgColor);
+  Object.entries(termColorMap).forEach(([term, bgColor], termIdx) => {
+    highlightTextNodes(tempDiv, term, bgColor, termIdx);
   });
 
   return tempDiv.innerHTML;
+}
+
+const HL_PALETTES = [
+  ["#00b9e5","#38d430","#e3e82b","#ffab4d","#ff3f3f","#ef2bc1","#bc13fe","#a8a895","#d4b896","#f4e4a6"],
+  ["#958AAA","#F7B169","#FFE5AC","#97B1C0","#047593","#47657f","#9aaaa0","#dcdbd9","#779482","#559d31","#bed7d1","#f2cd78","#bf9e71","#d88760","#bc6446","#87cffb","#4c9eed","#f2a45f","#f9d6a5","#c09a6c"],
+  ["#a52e45","#2b5278","#61787b","#ead8b1","#bf5c45","#df97ac","#d25d8a","#cc1e4a","#aacc6c","#3b9953","#e8c8be","#d19d87","#c2734e","#d7be9f","#4c484f","#b36f32","#f9ae17","#ffd16c","#fffa90","#fdffcc"],
+  ["#495057","#f03e3e","#d6336c","#ae3ec9","#7048e8","#4263eb","#1c7ed6","#1098ad","#0ca678","#37b24d","#74b816","#f59f00","#f76707"],
+  ["#ef9a9a","#f48fb1","#ce93d8","#b39ddb","#9fa8da","#90caf9","#81d4fa","#80deea","#80cbc4","#a5d6a7","#c5e1a5","#e6ee9c","#fff59d","#ffe082","#ffcc80","#ffab91","#bcaaa4"],
+  ["#f87171","#fb923c","#fbbf24","#facc15","#a3e635","#4ade80","#34d399","#2dd4bf","#22d3ee","#38bdf8","#60a5fa","#818cf8","#a78bfa","#c084fc","#e879f9","#f472b6","#fb7185"],
+];
+
+let hlPaletteIndex = 0;
+
+function updateHlPaletteLabel() {
+  const el = document.getElementById("hlPaletteLabel");
+  if (el) el.textContent = `palette #${hlPaletteIndex + 1}`;
+}
+
+async function loadHlPalette() {
+  const { zoocageHlPaletteIndex = 0 } =
+    await browser.storage.local.get("zoocageHlPaletteIndex");
+  hlPaletteIndex = zoocageHlPaletteIndex % HL_PALETTES.length;
+  updateHlPaletteLabel();
+}
+
+function cycleHlPalette() {
+  hlPaletteIndex = (hlPaletteIndex + 1) % HL_PALETTES.length;
+  browser.storage.local.set({ zoocageHlPaletteIndex: hlPaletteIndex });
+  updateHlPaletteLabel();
+
+  const terms = getEditorTerms();
+  const pal = HL_PALETTES[hlPaletteIndex];
+  Object.keys(terms).forEach((t, i) => {
+    terms[t] = pal[i % pal.length];
+  });
+  applyEditedTerms(terms);
+}
+
+function getEditorTerms() {
+  const ta = document.getElementById("snippetCode");
+  if (currentSnippetIndex !== null && snippets[currentSnippetIndex]) {
+    return { ...(snippets[currentSnippetIndex].highlightedTerms || {}) };
+  }
+  if (ta.dataset.pendingHighlights) {
+    try {
+      return JSON.parse(ta.dataset.pendingHighlights);
+    } catch (e) {}
+  }
+  return {};
+}
+
+function setEditorTerms(terms) {
+  const ta = document.getElementById("snippetCode");
+  if (currentSnippetIndex !== null && snippets[currentSnippetIndex]) {
+    snippets[currentSnippetIndex].highlightedTerms = terms;
+  } else {
+    ta.dataset.pendingHighlights = JSON.stringify(terms);
+  }
+}
+
+function renderHighlightEditor() {
+  const editor = document.getElementById("highlightEditor");
+  const chips = document.getElementById("hlTermChips");
+  if (!editor || !chips) return;
+
+  const isMd = getCurrentLanguage() === "markdown";
+  editor.style.display = isMd ? "block" : "none";
+  if (!isMd) return;
+
+  const terms = getEditorTerms();
+  chips.innerHTML = "";
+
+  const entries = Object.entries(terms);
+  if (entries.length === 0) {
+    chips.innerHTML =
+      '<span style="color:#858585; font-size:0.8rem;">No highlight terms</span>';
+    return;
+  }
+
+  entries.forEach(([term, color]) => {
+    const chip = document.createElement("span");
+    chip.style.cssText = `display:inline-flex; align-items:center; gap:0.35rem; padding:0.15rem 0.4rem; border-radius:3px; font-size:0.85rem; font-weight:600; background:${color}; color:${getContrastColor(color)};`;
+    chip.appendChild(document.createTextNode(term));
+
+    const x = document.createElement("span");
+    x.textContent = "×";
+    x.title = "Remove term";
+    x.style.cssText = "cursor:pointer; font-weight:700;";
+    x.addEventListener("click", () => {
+      const t = getEditorTerms();
+      delete t[term];
+      applyEditedTerms(t);
+    });
+    chip.appendChild(x);
+    chips.appendChild(chip);
+  });
+}
+
+function applyEditedTerms(terms) {
+  setEditorTerms(terms);
+  renderHighlightEditor();
+  if (isMarkdownRendered) renderMarkdownPreview();
+}
+
+function addEditorTerms(text) {
+  if (!text.trim()) return;
+
+  const phrases = (text.match(/"([^"]+)"/g) || []).map((p) => p.slice(1, -1));
+  const rest = text.replace(/"[^"]+"/g, " ").split(/\s+/).filter(Boolean);
+  const newTerms = [...phrases, ...rest].map((t) => t.toLowerCase());
+
+  const terms = getEditorTerms();
+  newTerms.forEach((t) => {
+    if (terms[t]) return;
+    const pal = HL_PALETTES[hlPaletteIndex];
+    const used = new Set(Object.values(terms).map((c) => c.toLowerCase()));
+    terms[t] =
+      pal.find((c) => !used.has(c.toLowerCase())) ||
+      pal[Object.keys(terms).length % pal.length];
+  });
+
+  applyEditedTerms(terms);
+  showNotification("Highlights updated. Click Save to keep them.");
 }
 
 function autoResizeTextarea(e) {
@@ -5771,6 +5978,7 @@ function changeLanguage(lang, displayName) {
   const dropdown = document.getElementById("languageSelector");
   dropdown.querySelector(".selected").textContent = displayName;
   updatePreview(lang);
+  renderHighlightEditor();
 }
 
 function calculateHash(data) {
@@ -6231,6 +6439,7 @@ async function loadSnippets() {
     snippets = [];
     renderSnippetList();
   }
+  renderHighlightEditor();
 }
 
 function renderSnippetList(searchTerm = "", filtered = null, scores = null) {
@@ -6403,6 +6612,7 @@ function createNewSnippet() {
   }
 
   document.getElementById("snippetCode").focus();
+  renderHighlightEditor();
 }
 
 function highlightNotesMatches(notesText, searchTerm) {
