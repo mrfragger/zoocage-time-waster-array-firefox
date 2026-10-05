@@ -1087,7 +1087,8 @@ function highlightMultipleTerms(terms, colors, diacriticsEnabled = true) {
 
             html += escapeHtml(originalText.substring(lastIndex));
 
-            const span = document.createElement('span');
+            const span = document.createElement('zoocage-hl');
+            span.style.cssText = 'display: contents !important; color: inherit !important; font: inherit !important;';
             span.innerHTML = html;
 
             if (textNode.parentNode) {
