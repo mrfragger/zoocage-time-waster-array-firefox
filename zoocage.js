@@ -1162,103 +1162,81 @@ async function exportAllWorkspaces() {
   const data = await browser.storage.local.get(null);
   const zip = new JSZip();
   let hasWorkspaces = false;
+  let avifCount = 0;
 
   await snippetStorage.init();
 
   const avifToWorkspaces = new Map();
 
-  for (const key of Object.keys(data)) {
-    if (key.startsWith("zoocagesnippets_")) {
-      const workspaceName = key.replace("zoocagesnippets_", "");
-      const snippetsData = data[key] || [];
-
-      if (snippetsData.length > 0) {
-        const fullSnippets = await Promise.all(
-          snippetsData.map(async (snippet) => {
-            if (snippet.inIndexedDB && snippet.timestamp) {
-              const fullSnippet = await snippetStorage.get(
-                `snippet_${snippet.timestamp}`,
-              );
-              if (fullSnippet) {
-                return {
-                  title: fullSnippet.title,
-                  language: fullSnippet.language,
-                  code: fullSnippet.code,
-                  notes: fullSnippet.notes || "",
-                  timestamp: fullSnippet.timestamp,
-                  highlightedTerms: snippet.highlightedTerms || {},
-                };
-              }
-            }
-
-            let code = snippet.code || "";
-            if (snippet.compressed && code) {
-              code = decompressText(code);
-            }
-
+  async function buildFullSnippets(snippetsData) {
+    return Promise.all(
+      snippetsData.map(async (snippet) => {
+        if (snippet.inIndexedDB && snippet.timestamp) {
+          const fullSnippet = await snippetStorage.get(
+            `snippet_${snippet.timestamp}`,
+          );
+          if (fullSnippet) {
             return {
-              title: snippet.title,
-              language: snippet.language,
-              code: code,
-              notes: snippet.notes || "",
-              timestamp: snippet.timestamp,
+              title: fullSnippet.title,
+              language: fullSnippet.language,
+              code: fullSnippet.code,
+              notes: fullSnippet.notes || "",
+              timestamp: fullSnippet.timestamp,
               highlightedTerms: snippet.highlightedTerms || {},
             };
-          }),
-        );
+          }
+        }
 
-        fullSnippets.forEach((snippet) => {
-          const cacheRefs =
-            snippet.code.match(/avif-cache:\/\/([a-f0-9]+)/g) || [];
-          cacheRefs.forEach((ref) => {
-            const hash = ref.replace("avif-cache://", "").split("#")[0];
-            if (!avifToWorkspaces.has(hash)) {
-              avifToWorkspaces.set(hash, new Set());
-            }
-            avifToWorkspaces.get(hash).add(workspaceName);
-          });
-        });
+        let code = snippet.code || "";
+        if (snippet.compressed && code) {
+          code = decompressText(code);
+        }
 
-        zip.file(
-          `${workspaceName}.json`,
-          JSON.stringify(fullSnippets, null, 2),
-        );
-        hasWorkspaces = true;
-      }
+        return {
+          title: snippet.title,
+          language: snippet.language,
+          code: code,
+          notes: snippet.notes || "",
+          timestamp: snippet.timestamp,
+          highlightedTerms: snippet.highlightedTerms || {},
+        };
+      }),
+    );
+  }
+
+  function trackAvifRefs(fullSnippets, workspaceName) {
+    fullSnippets.forEach((snippet) => {
+      const cacheRefs =
+        (snippet.code || "").match(/avif-cache:\/\/([a-f0-9]+)/g) || [];
+      cacheRefs.forEach((ref) => {
+        const hash = ref.replace("avif-cache://", "").split("#")[0];
+        if (!avifToWorkspaces.has(hash)) {
+          avifToWorkspaces.set(hash, new Set());
+        }
+        avifToWorkspaces.get(hash).add(workspaceName);
+      });
+    });
+  }
+
+  for (const key of Object.keys(data)) {
+    let workspaceName = null;
+
+    if (key.startsWith("zoocagesnippets_")) {
+      workspaceName = key.replace("zoocagesnippets_", "");
     } else if (key === "zoocagesnippets") {
-      const snippetsData = data[key] || [];
-
-      if (snippetsData.length > 0) {
-        const fullSnippets = await Promise.all(
-          snippetsData.map(async (snippet) => {
-            if (snippet.inIndexedDB && snippet.timestamp) {
-              const fullSnippet = await snippetStorage.get(
-                `snippet_${snippet.timestamp}`,
-              );
-              if (fullSnippet) {
-                return fullSnippet;
-              }
-            }
-            return snippet;
-          }),
-        );
-
-        fullSnippets.forEach((snippet) => {
-          const cacheRefs =
-            snippet.code.match(/avif-cache:\/\/([a-f0-9]+)/g) || [];
-          cacheRefs.forEach((ref) => {
-            const hash = ref.replace("avif-cache://", "").split("#")[0];
-            if (!avifToWorkspaces.has(hash)) {
-              avifToWorkspaces.set(hash, new Set());
-            }
-            avifToWorkspaces.get(hash).add("default");
-          });
-        });
-
-        zip.file("default.json", JSON.stringify(fullSnippets, null, 2));
-        hasWorkspaces = true;
-      }
+      workspaceName = "default";
     }
+
+    if (workspaceName === null) continue;
+
+    const snippetsData = data[key] || [];
+    if (snippetsData.length === 0) continue;
+
+    const fullSnippets = await buildFullSnippets(snippetsData);
+    trackAvifRefs(fullSnippets, workspaceName);
+
+    zip.file(`${workspaceName}.json`, JSON.stringify(fullSnippets, null, 2));
+    hasWorkspaces = true;
   }
 
   if (!hasWorkspaces) {
@@ -1271,6 +1249,7 @@ async function exportAllWorkspaces() {
     await avifCache.init();
 
     const avifKeys = await avifCache.getAllKeys();
+    avifCount = avifKeys.length;
 
     for (const hash of avifKeys) {
       const blob = await avifCache.get(hash);
@@ -1289,14 +1268,14 @@ async function exportAllWorkspaces() {
         }
       }
     }
-  } catch (error) {}
+  } catch (error) {
+    console.error("AVIF export error:", error);
+  }
 
   const content = await zip.generateAsync({
     type: "blob",
     compression: "DEFLATE",
-    compressionOptions: {
-      level: 9,
-    },
+    compressionOptions: { level: 9 },
   });
 
   const url = URL.createObjectURL(content);
@@ -1307,7 +1286,7 @@ async function exportAllWorkspaces() {
   link.click();
   URL.revokeObjectURL(url);
 
-  showNotification(`Exported workspaces with ${avifKeys.length} AVIF images`);
+  showNotification(`Exported workspaces with ${avifCount} AVIF images`);
 }
 
 function importAllWorkspaces(event) {
@@ -1376,7 +1355,12 @@ function importAllWorkspaces(event) {
                 const newSnippets = [];
                 const storageSnippets = [];
 
-                for (const snippet of snippetsData) {
+                for (const rawSnippet of snippetsData) {
+                  const snippet =
+                    rawSnippet.compressed && rawSnippet.code
+                      ? { ...rawSnippet, code: decompressText(rawSnippet.code), compressed: false }
+                      : rawSnippet;
+
                   const uniqueKey = `${snippet.title}|${snippet.timestamp}`;
 
                   if (existingSet.has(uniqueKey)) {
@@ -1931,6 +1915,11 @@ function updateWorkspaceIndicator() {
 
 function initApp() {
   initMode();
+  browser.storage.local
+    .get("zoocageSidebarCollapsed")
+    .then(({ zoocageSidebarCollapsed = false }) => {
+      setSidebarCollapsed(zoocageSidebarCollapsed, false);
+    });
   loadThemes();
   migrateSnippets().then(() => {
     loadSnippets();
@@ -2038,6 +2027,7 @@ function setupEventListeners() {
   document.getElementById("clearCode").addEventListener("click", clearCode);
   document.getElementById("titleCase").addEventListener("click", titleCase);
   document.getElementById("scrollToTop").addEventListener("click", scrollToTop);
+  document.getElementById("toggleSidebar").addEventListener("click", toggleSidebar);
   document
     .getElementById("scrollToNotes")
     .addEventListener("click", scrollToNotes);
@@ -2260,6 +2250,11 @@ function setupEventListeners() {
     if ((e.ctrlKey || e.metaKey) && e.key === "n") {
       e.preventDefault();
       createNewSnippet();
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.key === "\\") {
+      e.preventDefault();
+      toggleSidebar();
     }
   });
 
@@ -4392,6 +4387,24 @@ function toggleSplitView() {
 
     showNotification("Split view disabled");
   }
+}
+
+function setSidebarCollapsed(collapsed, save = true) {
+  document.body.classList.toggle("sidebar-collapsed", collapsed);
+  const btn = document.getElementById("toggleSidebar");
+  if (btn) {
+    btn.style.opacity = collapsed ? "0.6" : "1";
+    btn.title = collapsed
+      ? "Show search sidebar (Ctrl+\\ / ⌘\\)"
+      : "Hide search sidebar (Ctrl+\\ / ⌘\\)";
+  }
+  if (save) {
+    browser.storage.local.set({ zoocageSidebarCollapsed: collapsed });
+  }
+}
+
+function toggleSidebar() {
+  setSidebarCollapsed(!document.body.classList.contains("sidebar-collapsed"));
 }
 
 function setDefaultTitleFromNotes(notes) {

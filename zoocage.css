@@ -1505,3 +1505,28 @@ body.light-mode .diff-edit-added {
     color: inherit !important;
     padding: 0 !important;
 }
+
+.sidebar {
+    flex-shrink: 0;
+}
+
+body.sidebar-collapsed .sidebar {
+    display: none;
+}
+
+/* select-all only makes sense when the list is visible */
+body.sidebar-collapsed .select-all-container {
+    display: none;
+}
+
+/* optional: use the freed space better */
+body.sidebar-collapsed .editor-container {
+    padding: 1rem;
+}
+
+#toggleSidebar {
+    font-size: 1.1rem;
+    padding: 0.35rem 0.6rem;
+    line-height: 1;
+    min-width: auto;
+}
