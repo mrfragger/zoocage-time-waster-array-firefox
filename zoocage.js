@@ -284,7 +284,11 @@ function showNotification(message, type = "success") {
   }, 3000);
 }
 
+let languageBeforeMarkdown = null;
+
 const availableLanguages = [
+  "apache",
+  "armasm",
   "asciidoc",
   "awk",
   "bash",
@@ -299,23 +303,33 @@ const availableLanguages = [
   "elixir",
   "go",
   "graphql",
+  "groovy",
   "haskell",
+  "http",
   "ini",
   "java",
   "javascript",
   "json",
+  "julia",
   "kotlin",
+  "latex",
+  "less",
   "lua",
   "makefile",
   "markdown",
+  "matlab",
+  "nginx",
+  "nix",
   "objectivec",
   "odin",
   "perl",
+  "pgsql",
   "php",
   "plaintext",
   "powershell",
   "protobuf",
   "python",
+  "r",
   "ruby",
   "rust",
   "scala",
@@ -324,7 +338,9 @@ const availableLanguages = [
   "sql",
   "swift",
   "typescript",
+  "vim",
   "wasm",
+  "x86asm",
   "xml",
   "yaml",
   "zig",
@@ -1683,6 +1699,20 @@ function importSourceFiles(event) {
     scala: "scala",
     sc: "scala",
     proto: "protobuf",
+    less: "less",
+    vim: "vim",
+    vimrc: "vim",
+    jl: "julia",
+    nix: "nix",
+    tex: "latex",
+    sty: "latex",
+    s: "armasm",
+    asm: "x86asm",
+    r: "r",
+    groovy: "groovy",
+    gradle: "groovy",
+    http: "http",
+    pgsql: "pgsql",
   };
 
   const skipExtensions = new Set([
@@ -1982,16 +2012,16 @@ function updateWorkspaceIndicator() {
     const indicator = document.createElement("div");
     indicator.id = "workspaceIndicator";
     indicator.style.cssText =
-      "color: #4ec9b0; font-weight: 600; font-size: 0.9rem;";
+      "color: #4ec9b0; font-weight: 600; font-size: 0.9rem; margin-left: 1rem; text-align: right; white-space: nowrap;";
     indicator.innerHTML = `
             <a href="?view=workspaces" style="color: #4ec9b0; text-decoration: none;">← Workspaces</a> / ${displayName}
             <div id="snippetCount" style="color: #858585; font-weight: 400; font-size: 0.85rem; margin-top: 0.25rem;">${snippets.length}/${snippets.length} snippet${snippets.length !== 1 ? "s" : ""}</div>
         `;
 
-    const headerLeft = document.querySelector(
-      "header > div:first-child > div:first-child",
+    const headerControls = document.querySelector(
+      "header > div:first-child > .controls",
     );
-    headerLeft.appendChild(indicator);
+    headerControls.appendChild(indicator);
   });
 }
 
@@ -2102,11 +2132,13 @@ function setupEventListeners() {
     .getElementById("saveSnippet")
     .addEventListener("click", saveCurrentSnippet);
   document.getElementById("copyCode").addEventListener("click", copyCode);
+  document.getElementById("saveSnippet2").addEventListener("click", saveCurrentSnippet);
+  document.getElementById("copyCode2").addEventListener("click", copyCode);
+  document.getElementById("deleteSnippet2").addEventListener("click", deleteCurrentSnippet);
   document.getElementById("copyNotes").addEventListener("click", copyNotes);
   document.getElementById("clearTitle").addEventListener("click", clearTitle);
   document.getElementById("clearCode").addEventListener("click", clearCode);
   document.getElementById("clearNotes").addEventListener("click", clearNotes);
-  document.getElementById("clearCode").addEventListener("click", clearCode);
   document.getElementById("titleCase").addEventListener("click", titleCase);
   document.getElementById("scrollToTop").addEventListener("click", scrollToTop);
   document.getElementById("toggleSidebar").addEventListener("click", toggleSidebar);
@@ -2134,9 +2166,6 @@ function setupEventListeners() {
   document
     .getElementById("viewCsvBtn")
     .addEventListener("click", viewCSVAsTable);
-  document
-    .getElementById("saveNoImagesBtnTop")
-    .addEventListener("click", saveSnippetWithoutImages);
   document
     .getElementById("toggleFilePosition")
     .addEventListener("click", toggleFilePosition);
@@ -2184,6 +2213,8 @@ function setupEventListeners() {
             code,
             themesToEmbed,
             activeThemeHref,
+            document.getElementById("snippetNotes").value,
+            exportNotes,
           );
           const safeTitle = title.replace(/[<>:"/\\|?*]/g, "-");
           const blob = new Blob([html], { type: "text/html;charset=utf-8" });
@@ -2631,19 +2662,24 @@ function applyThemeToMarkdown() {
             }
 
             .markdown-preview-content h1,
-            .markdown-preview-content h2 {
-                color: ${titleColor} !important;
-                border-bottom-color: rgba(255, 255, 255, 0.1) !important;
-                font-family: '${markdownFont}', Consolas, Monaco, 'Courier New', monospace !important;
-            }
-
+            .markdown-preview-content h2,
             .markdown-preview-content h3,
             .markdown-preview-content h4,
             .markdown-preview-content h5,
             .markdown-preview-content h6 {
                 color: ${titleColor} !important;
                 font-family: '${markdownFont}', Consolas, Monaco, 'Courier New', monospace !important;
+                font-weight: 600 !important;
+                line-height: 1.4 !important;
+                margin-top: 1rem !important;
+                margin-bottom: 0.4rem !important;
             }
+            .markdown-preview-content h1 { font-size: 1.15em !important; }
+            .markdown-preview-content h2 { font-size: 1.1em !important; }
+            .markdown-preview-content h3 { font-size: 1.05em !important; }
+            .markdown-preview-content h4,
+            .markdown-preview-content h5,
+            .markdown-preview-content h6 { font-size: 1em !important; }
 
             .markdown-preview-content p,
             .markdown-preview-content li,
@@ -2824,46 +2860,26 @@ async function renderMarkdownPreview() {
   let highlightTerms = null;
   let cjkMode = false;
 
-  if (currentSnippetIndex !== null) {
+  if (currentSnippetIndex !== null && snippets[currentSnippetIndex]) {
     const snippet = snippets[currentSnippetIndex];
-    if (snippet.highlightedTerms) {
-      highlightTerms = snippet.highlightedTerms;
-    }
-    if (snippet.cjkMode !== undefined) {
-      cjkMode = snippet.cjkMode;
-    }
-  }
-
-  if (!highlightTerms) {
-    const codeTextarea = document.getElementById("snippetCode");
-    if (codeTextarea.dataset.pendingHighlights) {
+    highlightTerms = snippet.highlightedTerms || {};
+    cjkMode = snippet.cjkMode || false;
+  } else {
+    const ta = document.getElementById("snippetCode");
+    if (ta.dataset.pendingHighlights) {
       try {
-        highlightTerms = JSON.parse(codeTextarea.dataset.pendingHighlights);
+        highlightTerms = JSON.parse(ta.dataset.pendingHighlights);
       } catch (e) {
         console.error("Failed to parse pending highlights:", e);
       }
     }
-
-    if (codeTextarea.dataset.pendingCjkMode !== undefined) {
-      cjkMode = codeTextarea.dataset.pendingCjkMode === "true";
+    if (ta.dataset.pendingCjkMode !== undefined) {
+      cjkMode = ta.dataset.pendingCjkMode === "true";
     }
   }
 
   if (highlightTerms && Object.keys(highlightTerms).length > 0) {
     rendered = applyHighlightsWithColors(rendered, highlightTerms, cjkMode);
-  }
-
-  if (currentSnippetIndex !== null) {
-    const snippet = snippets[currentSnippetIndex];
-
-    if (
-      snippet.highlightedTerms &&
-      Object.keys(snippet.highlightedTerms).length > 0
-    ) {
-      rendered = applyHighlightsWithColors(rendered, snippet.highlightedTerms);
-    } else {
-    }
-  } else {
   }
 
   preview.innerHTML = `<div class="markdown-preview-content" id="markdownPdfContent" style="padding: 1rem; max-width: 640px; line-height: 1.6;">
@@ -2896,6 +2912,7 @@ async function toggleMarkdownView() {
 
   if (!isMarkdownRendered) {
     if (lang !== "markdown") {
+      languageBeforeMarkdown = lang;
       setLanguageDropdown("markdown");
     }
 
@@ -2905,11 +2922,20 @@ async function toggleMarkdownView() {
     if (saveHtmlBtnTop) saveHtmlBtnTop.style.display = "inline-block";
     if (saveNoImagesBtnTop) saveNoImagesBtnTop.style.display = "inline-block";
     isMarkdownRendered = true;
+    renderHighlightEditor();
   } else {
-    updatePreview(lang);
+    let restoreLang = lang;
+    if (languageBeforeMarkdown) {
+      restoreLang = languageBeforeMarkdown;
+      setLanguageDropdown(restoreLang);
+      languageBeforeMarkdown = null;
+    }
+
+    isMarkdownRendered = false;
+    updatePreview(restoreLang);
     markdownBtn.textContent = "View as Markdown";
     if (saveNoImagesBtnTop) saveNoImagesBtnTop.style.display = "none";
-    isMarkdownRendered = false;
+    renderHighlightEditor();
   }
 }
 
@@ -3205,11 +3231,11 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
         th { background:rgba(128,128,128,0.07); font-weight:600; }
         a { color:${keywordColor}; text-decoration:none; }
         a:hover { color:${stringColor}; text-decoration:underline; }
-        h1,h2,h3,h4,h5,h6 { margin-top:1.5rem; margin-bottom:0.5rem; color:${titleColor}; }
-        h5 { font-size: 1em; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.4rem; }
-        h1 { font-size:1.25em; border-bottom:2px solid rgba(128,128,128,0.15); padding-bottom:0.3rem; }
-        h2 { font-size:1.5em; border-bottom:1px solid rgba(128,128,128,0.15); padding-bottom:0.3rem; }
-        h3 { font-size:1.25em; }
+        h1,h2,h3,h4,h5,h6 { color:${titleColor}; font-weight:600; line-height:1.4; margin-top:1rem; margin-bottom:0.4rem; }
+        h1 { font-size:1.15em; }
+        h2 { font-size:1.1em; }
+        h3 { font-size:1.05em; }
+        h4,h5,h6 { font-size:1em; }
         ul,ol { padding-left:2rem; }
         li { margin:0.25rem 0; }
         hr { border:none; border-top:1px solid rgba(128,128,128,0.15); margin:2rem 0; }
@@ -3380,6 +3406,7 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
 
         buildFreqPanel();
 
+        })();
     })();
     <\/script>
     ${buildHighlightPaletteScript(highlightedTerms)}
@@ -3398,12 +3425,13 @@ function showThemePickerModal(callback) {
     { name: "Agate", file: "agate.min.css" },
     { name: "An Old Hope", file: "an-old-hope.min.css" },
     { name: "Atom One Dark", file: "atom-one-dark.min.css" },
-    {
-      name: "Atom One Dark Reasonable",
-      file: "atom-one-dark-reasonable.min.css",
-    },
+    { name: "Atom One Dark Reasonable", file: "atom-one-dark-reasonable.min.css",},
+    { name: "Ayu Mirage", file: "ayu-mirage.min.css" },
+    { name: "Catthode", file: "catthode.min.css" },
+    { name: "Claude Code Dark", file: "claude-code-dark.min.css" },
     { name: "Codepen Embed", file: "codepen-embed.min.css" },
     { name: "Cybertopia Saturated", file: "cybertopia-saturated.min.css" },
+    { name: "Fluorescence", file: "fluorescence.min.css" },
     { name: "GitHub Dark", file: "github-dark.min.css" },
     { name: "Gradient Dark", file: "gradient-dark.min.css" },
     { name: "Hybrid", file: "hybrid.min.css" },
@@ -3414,8 +3442,10 @@ function showThemePickerModal(callback) {
     { name: "Nord", file: "nord.min.css" },
     { name: "Obsidian", file: "obsidian.min.css" },
     { name: "Panda Syntax Dark", file: "panda-syntax-dark.min.css" },
+    { name: "PaperColor Dark", file: "papercolor-dark.min.css" },
     { name: "Paraiso Dark", file: "paraiso-dark.min.css" },
     { name: "Pojoaque", file: "pojoaque.min.css" },
+    { name: "Quietude Dusk", file: "quietude-dusk.min.css" },
     { name: "Rainbow", file: "rainbow.min.css" },
     { name: "Sandworm", file: "sandworm.min.css" },
     { name: "Shades of Purple", file: "shades-of-purple.min.css" },
@@ -3447,6 +3477,7 @@ function showThemePickerModal(callback) {
     { name: "Mono Blue", file: "mono-blue.min.css" },
     { name: "Panda Syntax Light", file: "panda-syntax-light.min.css" },
     { name: "Paraiso Light", file: "paraiso-light.min.css" },
+    { name: "Quietude Dawn", file: "quietude-dawn.min.css" },
     { name: "PureBasic", file: "purebasic.min.css" },
     { name: "Rose Pine Dawn", file: "rose-pine-dawn.min.css" },
     { name: "RouterOS", file: "routeros.min.css" },
@@ -3946,11 +3977,11 @@ body[data-theme="${theme.name}"] :not(pre) > code { color: ${colors.strColor}; }
         th { background:rgba(128,128,128,0.07); font-weight:600; }
         a { color:${keywordColor}; text-decoration:none; }
         a:hover { color:${stringColor}; text-decoration:underline; }
-        h1,h2,h3,h4,h5,h6 { margin-top:1.5rem; margin-bottom:0.5rem; color:${titleColor}; }
-        h5 { font-size: 1em; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.4rem; }
-        h1 { font-size:1.6em; border-bottom:2px solid rgba(128,128,128,0.15); padding-bottom:0.3rem; }
-        h2 { font-size:1.5em; border-bottom:1px solid rgba(128,128,128,0.15); padding-bottom:0.3rem; }
-        h3 { font-size:1.25em; }
+        h1,h2,h3,h4,h5,h6 { color:${titleColor}; font-weight:600; line-height:1.4; margin-top:1rem; margin-bottom:0.4rem; }
+        h1 { font-size:1.15em; }
+        h2 { font-size:1.1em; }
+        h3 { font-size:1.05em; }
+        h4,h5,h6 { font-size:1em; }
         ul,ol { padding-left:2rem; }
         li { margin:0.25rem 0; }
         hr { border:none; border-top:1px solid rgba(128,128,128,0.15); margin:2rem 0; }
@@ -4315,14 +4346,23 @@ function setEditorTerms(terms) {
   }
 }
 
+function clearPendingEditorState() {
+  const ta = document.getElementById("snippetCode");
+  delete ta.dataset.pendingHighlights;
+  delete ta.dataset.pendingCjkMode;
+}
+
 function renderHighlightEditor() {
   const editor = document.getElementById("highlightEditor");
   const chips = document.getElementById("hlTermChips");
   if (!editor || !chips) return;
 
-  const isMd = getCurrentLanguage() === "markdown";
-  editor.style.display = isMd ? "block" : "none";
-  if (!isMd) return;
+  const show = getCurrentLanguage() === "markdown" && isMarkdownRendered;
+  editor.style.display = show ? "block" : "none";
+  if (!show) {
+    syncPaneAlignment();
+    return;
+  }
 
   const terms = getEditorTerms();
   chips.innerHTML = "";
@@ -5825,8 +5865,12 @@ function getThemeNameFromFile(filename, isDark) {
     "an-old-hope.min.css": "An Old Hope",
     "atom-one-dark.min.css": "Atom One Dark",
     "atom-one-dark-reasonable.min.css": "Atom One Dark Reasonable",
+    "ayu-mirage.min.css": "Ayu Mirage",
+    "catthode.min.css": "Catthode",
+    "claude-code-dark.min.css": "Claude Code Dark",
     "codepen-embed.min.css": "Codepen Embed",
     "cybertopia-saturated.min.css": "Cybertopia Saturated",
+    "fluorescence.min.css": "Fluorescence",
     "github-dark.min.css": "GitHub Dark",
     "gradient-dark.min.css": "Gradient Dark",
     "hybrid.min.css": "Hybrid",
@@ -5837,8 +5881,10 @@ function getThemeNameFromFile(filename, isDark) {
     "nord.min.css": "Nord",
     "obsidian.min.css": "Obsidian",
     "panda-syntax-dark.min.css": "Panda Syntax Dark",
+    "papercolor-dark.min.css": "PaperColor Dark",
     "paraiso-dark.min.css": "Paraiso Dark",
     "pojoaque.min.css": "Pojoaque",
+    "quietude-dusk.min.css": "Quietude Dusk",
     "rainbow.min.css": "Rainbow",
     "sandworm.min.css": "Sandworm",
     "shades-of-purple.min.css": "Shades of Purple",
@@ -5871,6 +5917,7 @@ function getThemeNameFromFile(filename, isDark) {
     "panda-syntax-light.min.css": "Panda Syntax Light",
     "paraiso-light.min.css": "Paraiso Light",
     "purebasic.min.css": "PureBasic",
+    "quietude-dawn.min.css": "Quietude Dawn",
     "rose-pine-dawn.min.css": "Rose Pine Dawn",
     "routeros.min.css": "RouterOS",
     "stackoverflow-light.min.css": "Stack Overflow Light",
@@ -5908,12 +5955,13 @@ function loadThemes() {
     { name: "Agate", file: "agate.min.css" },
     { name: "An Old Hope", file: "an-old-hope.min.css" },
     { name: "Atom One Dark", file: "atom-one-dark.min.css" },
-    {
-      name: "Atom One Dark Reasonable",
-      file: "atom-one-dark-reasonable.min.css",
-    },
+    { name: "Atom One Dark Reasonable",file: "atom-one-dark-reasonable.min.css",},
+    { name: "Ayu Mirage", file: "ayu-mirage.min.css" },
+    { name: "Catthode", file: "catthode.min.css" },
+    { name: "Claude Code Dark", file: "claude-code-dark.min.css" },
     { name: "Codepen Embed", file: "codepen-embed.min.css" },
     { name: "Cybertopia Saturated", file: "cybertopia-saturated.min.css" },
+    { name: "Fluorescence", file: "fluorescence.min.css" },
     { name: "GitHub Dark", file: "github-dark.min.css" },
     { name: "Gradient Dark", file: "gradient-dark.min.css" },
     { name: "Hybrid", file: "hybrid.min.css" },
@@ -5925,7 +5973,9 @@ function loadThemes() {
     { name: "Obsidian", file: "obsidian.min.css" },
     { name: "Panda Syntax Dark", file: "panda-syntax-dark.min.css" },
     { name: "Paraiso Dark", file: "paraiso-dark.min.css" },
+    { name: "PaperColor Dark", file: "papercolor-dark.min.css" },
     { name: "Pojoaque", file: "pojoaque.min.css" },
+    { name: "Quietude Dusk", file: "quietude-dusk.min.css" },
     { name: "Rainbow", file: "rainbow.min.css" },
     { name: "Sandworm", file: "sandworm.min.css" },
     { name: "Shades of Purple", file: "shades-of-purple.min.css" },
@@ -5958,6 +6008,7 @@ function loadThemes() {
     { name: "Panda Syntax Light", file: "panda-syntax-light.min.css" },
     { name: "Paraiso Light", file: "paraiso-light.min.css" },
     { name: "PureBasic", file: "purebasic.min.css" },
+    { name: "Quietude Dawn", file: "quietude-dawn.min.css" },
     { name: "Rose Pine Dawn", file: "rose-pine-dawn.min.css" },
     { name: "RouterOS", file: "routeros.min.css" },
     { name: "Stack Overflow Light", file: "stackoverflow-light.min.css" },
@@ -6058,6 +6109,7 @@ function populateLanguageSelect() {
 }
 
 function changeLanguage(lang, displayName) {
+  languageBeforeMarkdown = null;
   const dropdown = document.getElementById("languageSelector");
   dropdown.querySelector(".selected").textContent = displayName;
   updatePreview(lang);
@@ -6371,13 +6423,10 @@ function performSearch(searchTerm) {
 
         if (currentSnippetIndex !== null) {
           isMarkdownRendered = false;
-
           const markdownBtn = document.getElementById("viewMarkdownBtn");
-          if (markdownBtn) {
-            markdownBtn.textContent = "View as Markdown";
-          }
-
+          if (markdownBtn) markdownBtn.textContent = "View as Markdown";
           updatePreview();
+          renderHighlightEditor();
 
           const currentSnippet = snippets[currentSnippetIndex];
           const notesValue = currentSnippet.notes || "";
@@ -6393,6 +6442,8 @@ function performSearch(searchTerm) {
         renderSnippetList();
         if (currentSnippetIndex !== null) {
           isMarkdownRendered = false;
+          updatePreview();
+          renderHighlightEditor();
 
           const markdownBtn = document.getElementById("viewMarkdownBtn");
           if (markdownBtn) {
@@ -6663,6 +6714,8 @@ function createNewSnippet() {
   const searchTerm = document.getElementById("searchInput").value.trim();
 
   isMarkdownRendered = false;
+  languageBeforeMarkdown = null;
+  clearPendingEditorState();
 
   const saveHtmlBtnTop = document.getElementById("saveHtmlBtnTop");
   const saveNoImagesBtnTop = document.getElementById("saveNoImagesBtnTop");
@@ -6766,6 +6819,8 @@ function loadSnippet(index) {
   const searchTerm = document.getElementById("searchInput").value.trim();
 
   isMarkdownRendered = false;
+  languageBeforeMarkdown = null;
+  clearPendingEditorState();
 
   const saveHtmlBtnTop = document.getElementById("saveHtmlBtnTop");
   const saveNoImagesBtnTop = document.getElementById("saveNoImagesBtnTop");
@@ -6775,6 +6830,7 @@ function loadSnippet(index) {
 
   document.getElementById("snippetTitle").value = snippet.title;
   setLanguageDropdown(snippet.language);
+  renderHighlightEditor();
   document.getElementById("snippetCode").value = snippet.code;
 
   const notesTextarea = document.getElementById("snippetNotes");
@@ -7966,13 +8022,6 @@ async function saveSnippetWithoutImages() {
       toggleMarkdownView();
     }, 100);
   });
-
-  if (newCode && newCode.length > 1000) {
-    const freqAnalysis = analyzeFrequency(newCode);
-    if (freqAnalysis) {
-      notes = notes + freqAnalysis;
-    }
-  }
 }
 
 async function cleanupOrphanedAVIFImages(deletedSnippets, remainingSnippets) {
@@ -8292,6 +8341,10 @@ async function zipSelectedToHTML() {
           snippet.title,
           snippet.language,
           code,
+          themesToEmbed,
+          activeThemeHref,
+          snippet.notes || "",
+          exportNotes,
         );
       }
 
@@ -8604,22 +8657,16 @@ async function generateMarkdownHTML(
         }
 
         h1, h2, h3, h4, h5, h6 {
-            margin-top: 1.5rem;
-            margin-bottom: 0.5rem;
             color: ${titleColor};
+            font-weight: 600;
+            line-height: 1.4;
+            margin-top: 1rem;
+            margin-bottom: 0.4rem;
         }
-
-        h1 {
-            font-size: 1.6em;
-            border-bottom: 2px solid ${isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
-            padding-bottom: 0.3rem;
-        }
-        h2 {
-            font-size: 1.5em;
-            border-bottom: 1px solid ${isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
-            padding-bottom: 0.3rem;
-        }
-        h3 { font-size: 1.25em; }
+        h1 { font-size: 1.15em; }
+        h2 { font-size: 1.1em; }
+        h3 { font-size: 1.05em; }
+        h4, h5, h6 { font-size: 1em; }
 
         ul, ol { padding-left: 2rem; }
         li { margin: 0.25rem 0; }
@@ -8662,6 +8709,8 @@ async function generateCodeHTML(
   code,
   themesToEmbed,
   activeThemeHref,
+  notes = "",
+  exportNotes = true,
 ) {
   const themeStylesheet = document.getElementById("themeStylesheet");
 
@@ -8796,7 +8845,11 @@ body[data-theme="${theme.name}"] .prose-text { color: ${colors.text}; }
     }
     bodyContent = `<pre class="hljs"><code class="hljs language-${escapeHtml(language)}">${highlighted}</code></pre>`;
   }
-
+  const freqWordsJSON = JSON.stringify(processWords(code));
+  const notesContent = exportNotes ? (notes || "").trim() : "";
+  const notesHTML = notesContent
+    ? `<div id="notes-content">${escapeHtml(notesContent)}</div>`
+    : "";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8813,13 +8866,19 @@ body[data-theme="${theme.name}"] .prose-text { color: ${colors.text}; }
         #zoocage-toolbar { position:fixed; top:10px; right:10px; display:flex; align-items:center; gap:6px; background:rgba(45,45,45,0.92); padding:6px 10px; border-radius:6px; box-shadow:0 2px 10px rgba(0,0,0,0.3); z-index:1000; font-size:16px; backdrop-filter:blur(4px); }
         #zoocage-toolbar button { background:none; border:none; cursor:pointer; font-size:16px; line-height:1; padding:2px; opacity:0.8; user-select:none; }
         #zoocage-toolbar button:hover { opacity:1; }
-        body.highlights-off .hljs { filter: grayscale(100%); opacity: 0.7; }
+        body.state-off .hljs { filter: grayscale(100%); opacity: 0.7; }
+        #freq-panel { display:none; margin-top:2rem; padding-top:1.5rem; border-top:1px solid rgba(128,128,128,0.2); font-size:0.82rem; line-height:1.8; }
+        body.state-freq #freq-panel { display:block; }
+        #freq-panel .freq-label { color:#858585; font-size:0.8rem; margin-bottom:0.5rem; }
+        #freq-panel .freq-word { display:inline-block; margin-right:0.6rem; white-space:nowrap; }
+        #freq-panel .freq-count { color:#38d430; }
+        #notes-content { margin-top:1.5rem; padding-top:1rem; border-top:1px solid rgba(128,128,128,0.15); font-size:0.9rem; line-height:1.7; white-space:pre-wrap; }
         @media print { #zoocage-toolbar { display:none; } }
     </style>
 </head>
-<body data-theme="${activeThemeName}">
+<body data-theme="${activeThemeName}" class="state-highlights">
     <div id="zoocage-toolbar">
-        <button id="toggle-highlight-btn" title="Toggle syntax highlighting">🟧</button>
+        <button id="toggle-state-btn" title="Highlights → Freq Words → Off">🟧</button>
         <div id="themeSwitcher" style="position:relative;">
             <div id="themeSelected" style="background:#3c3c3c;color:#d4d4d4;border:1px solid #555;border-radius:4px;padding:2px 8px;font-size:12px;cursor:pointer;user-select:none;min-width:120px;display:flex;justify-content:space-between;gap:6px;">${activeThemeName} <span>▼</span></div>
             <div id="themeOptions" style="display:none;position:absolute;right:0;top:100%;margin-top:2px;background:#3c3c3c;border:1px solid #555;border-radius:4px;z-index:2000;max-height:200px;overflow-y:auto;min-width:160px;">${themeOptions}</div>
@@ -8827,6 +8886,12 @@ body[data-theme="${theme.name}"] .prose-text { color: ${colors.text}; }
     </div>
     <h1>${escapeHtml(title)}</h1>
     ${bodyContent}
+    <div id="freq-panel">
+        <div class="freq-label">Word Frequencies - ZooCage (Firefox extension)</div>
+        <div id="freq-words-list"></div>
+        ${notesContent ? '<div class="freq-label" style="margin-top:1rem;">Notes</div>' : ""}
+        ${notesHTML}
+    </div>
     <script>
     (function() {
         const themeSelected = document.getElementById('themeSelected');
@@ -8903,21 +8968,40 @@ body[data-theme="${theme.name}"] .prose-text { color: ${colors.text}; }
         const savedTheme = sessionStorage.getItem('zoocage-theme');
         if (savedTheme) applyTheme(savedTheme);
 
-        // Toggle highlighting on/off
-        const toggleBtn = document.getElementById('toggle-highlight-btn');
-        let highlightOn = true;
-        toggleBtn.addEventListener('click', function() {
-            highlightOn = !highlightOn;
-            document.body.classList.toggle('highlights-off', !highlightOn);
-            toggleBtn.style.opacity = highlightOn ? '1' : '0.4';
-            sessionStorage.setItem('zoocage-highlight', highlightOn);
-        });
-        const savedHighlight = sessionStorage.getItem('zoocage-highlight');
-        if (savedHighlight === 'false') {
-            highlightOn = false;
-            document.body.classList.add('highlights-off');
-            toggleBtn.style.opacity = '0.4';
+        const FREQ_WORDS = ${freqWordsJSON};
+        const states = ['state-highlights', 'state-freq', 'state-off'];
+        const icons = { 'state-highlights': '🟧', 'state-freq': '🟦', 'state-off': '⬛' };
+        let currentState = 'state-highlights';
+        const toggleBtn = document.getElementById('toggle-state-btn');
+
+        function applyState(state) {
+            currentState = state;
+            document.body.classList.remove(...states);
+            document.body.classList.add(state);
+            toggleBtn.textContent = icons[state];
+            sessionStorage.setItem('zoocage-state', state);
         }
+
+        toggleBtn.addEventListener('click', function() {
+            applyState(states[(states.indexOf(currentState) + 1) % states.length]);
+        });
+
+        const savedState = sessionStorage.getItem('zoocage-state');
+        if (savedState && states.includes(savedState)) applyState(savedState);
+
+        (function buildFreqPanel() {
+            const list = document.getElementById('freq-words-list');
+            if (FREQ_WORDS.length === 0) {
+                list.textContent = 'No frequent words found.';
+                return;
+            }
+            FREQ_WORDS.forEach(({ word, freq }) => {
+                const span = document.createElement('span');
+                span.className = 'freq-word';
+                span.innerHTML = '<span class="freq-count">' + freq + '</span>&#x2007;' + word;
+                list.appendChild(span);
+            });
+        })();
     })();
     <\/script>
 </body>
@@ -9640,15 +9724,6 @@ function titleCase() {
   showNotification("Title case applied! (Click again to undo)");
 }
 
-let syncScrollEnabled = true;
-
-document.getElementById("toggleSyncScroll").addEventListener("click", () => {
-  syncScrollEnabled = !syncScrollEnabled;
-  const btn = document.getElementById("toggleSyncScroll");
-  btn.textContent = syncScrollEnabled ? "Sync Scroll" : "Sync Scroll";
-  btn.style.opacity = syncScrollEnabled ? "1" : "0.5";
-});
-
 const codeTextarea = document.getElementById("snippetCode");
 const preview = document.getElementById("codePreview");
 
@@ -9671,18 +9746,6 @@ preview.addEventListener("scroll", () => {
       (codeTextarea.scrollHeight - codeTextarea.clientHeight);
   }
 });
-
-const toggleHighlights = document.getElementById("toggleHighlights");
-if (toggleHighlights) {
-  toggleHighlights.addEventListener("change", function () {
-    const preview = document.getElementById("codePreview");
-    if (this.checked) {
-      preview.classList.remove("hide-highlights");
-    } else {
-      preview.classList.add("hide-highlights");
-    }
-  });
-}
 
 const toggleMarkdownHighlights = document.getElementById(
   "toggleMarkdownHighlights",

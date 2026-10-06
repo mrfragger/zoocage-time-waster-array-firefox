@@ -12,6 +12,16 @@
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 2rem;">
                 <h3><span style="color: #d34f02;">Z</span><span style="color: #bb4838;">o</span><span style="color: #af6743;">o</span><span style="color: #caa98a;">C</span><span style="color: #c9a16e;">a</span><span style="color: #b79767;">g</span><span style="color: #8e6845;">e</span> <span style="color: #d34f02;">C</span><span style="color: #bb4838;">o</span><span style="color: #af6743;">d</span><span style="color: #caa98a;">e</span> <span style="color: #c9a16e;">S</span><span style="color: #b79767;">n</span><span style="color: #8e6845;">i</span><span style="color: #d34f02;">p</span><span style="color: #bb4838;">p</span><span style="color: #af6743;">e</span><span style="color: #caa98a;">t</span><span style="color: #c9a16e;">t</span><span style="color: #b79767;">s</span></h3>
+                <div class="header-themes" style="display: flex; gap: 0.5rem;">
+                    <div class="dropdown" tabindex="0" id="themeSelectorDark">
+                        <div class="selected">Dark Themes</div>
+                        <div class="options"></div>
+                    </div>
+                    <div class="dropdown" tabindex="0" id="themeSelectorLight">
+                        <div class="selected">Light Themes</div>
+                        <div class="options"></div>
+                    </div>
+                </div>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                     <button class="danger" id="deleteSelectedBtn" style="display: none;">Delete Selected</button>
                     <button class="secondary" id="compareSelectedBtn" style="display: none;">Compare Selected (2)</button>
@@ -23,14 +33,6 @@
                 </div>
             </div>
             <div class="controls">
-                <div class="dropdown" tabindex="0" id="themeSelectorDark">
-                    <div class="selected">Dark Themes</div>
-                    <div class="options"></div>
-                </div>
-                <div class="dropdown" tabindex="0" id="themeSelectorLight">
-                    <div class="selected">Light Themes</div>
-                    <div class="options"></div>
-                </div>
                 <div class="dropdown" tabindex="0" id="languageSelector">
                     <div class="selected">Javascript</div>
                     <div class="options"></div>
@@ -86,78 +88,91 @@
                     <button class="input-clear-btn-outside" id="clearFilter" style="display: none;">×</button>
                 </div>
         </div>
-        </div>
         <div id="indexingIndicator" style="display: none;"></div>
         <div class="snippet-list" id="snippetList"></div>
     </aside>
     <div class="content-area">
         <div class="empty-state" id="emptyState">
-            <div style="text-align: left; max-width: 850px; overflow-y: auto; margin: 0 auto;">
-                <ul style="line-height: 1.8; margin-bottom: 2rem;">
+            <div style="text-align: left; max-width: 880px; overflow-y: auto; margin: 0 auto;">
+                <ul style="line-height: 1.4; margin-bottom: 2rem;">
                    <li>
-                       <span style="color: #00b9e5;">Asciidoc</span>,
-                       <span style="color: #38d430;">Awk</span>,
-                       <span style="color: #e3e82b;">Bash</span>,
-                       <span style="color: #ffab4d;">C</span>,
-                       <span style="color: #ff3f3f;">Cmake</span>,
-                       <span style="color: #ef2bc1;">C++</span>,
-                       <span style="color: #bc13fe;">C#</span>,
-                       <span style="color: #00b9e5;">CSS</span>,
-                       <span style="color: #38d430;">Dart</span>,
-                       <span style="color: #e3e82b;">Diff</span>,
-                       <span style="color: #ffab4d;">Dockerfile</span>,
-                       <span style="color: #ff3f3f;">Elixir</span>,
-                       <span style="color: #ef2bc1;">Go</span>,
-                       <span style="color: #bc13fe;">GraphQL</span>,
-                       <span style="color: #00b9e5;">Haskell</span>,
-                       <span style="color: #38d430;">ini</span>,
-                       <span style="color: #e3e82b;">Java</span>,
-                       <span style="color: #ffab4d;">Javascript</span>,
-                       <span style="color: #ff3f3f;">JSON</span>,
-                       <span style="color: #ef2bc1;">Kotlin</span>,
+                       <span style="color: #00b9e5;">Apache</span>,
+                       <span style="color: #38d430;">Armasm</span>,
+                       <span style="color: #e3e82b;">Asciidoc</span>,
+                       <span style="color: #ffab4d;">Awk</span>,
+                       <span style="color: #ff3f3f;">Bash</span>,
+                       <span style="color: #ef2bc1;">C</span>,
+                       <span style="color: #bc13fe;">Cmake</span>,
+                       <span style="color: #00b9e5;">C++</span>,
+                       <span style="color: #38d430;">C#</span>,
+                       <span style="color: #e3e82b;">CSS</span>,
+                       <span style="color: #ffab4d;">Dart</span>,
+                       <span style="color: #ff3f3f;">Diff</span>,
+                       <span style="color: #ef2bc1;">Dockerfile</span>,
+                       <span style="color: #bc13fe;">Elixir</span>,
+                       <span style="color: #00b9e5;">Go</span>,
+                       <span style="color: #38d430;">GraphQL</span>,
+                       <span style="color: #e3e82b;">Groovy</span>,
+                       <span style="color: #ffab4d;">Haskell</span>,
+                       <span style="color: #ff3f3f;">HTTP</span>,
+                       <span style="color: #ef2bc1;">ini</span>,
+                       <span style="color: #bc13fe;">Java</span>,
+                       <span style="color: #00b9e5;">Javascript</span>,
+                       <span style="color: #38d430;">JSON</span>,
+                       <span style="color: #e3e82b;">Julia</span>,
+                       <span style="color: #ffab4d;">Kotlin</span>,
+                       <span style="color: #ff3f3f;">Latex</span>,
+                       <span style="color: #ef2bc1;">Less</span>,
                        <span style="color: #bc13fe;">Lua</span>,
                        <span style="color: #00b9e5;">Makefile</span>,
                        <span style="color: #38d430;">Markdown</span>,
-                       <span style="color: #e3e82b;">Objectivec</span>,
-                       <span style="color: #ffab4d;">Odin</span>,
-                       <span style="color: #ff3f3f;">Perl</span>,
-                       <span style="color: #ef2bc1;">PHP</span>,
-                       <span style="color: #bc13fe;">Plaintext</span>,
-                       <span style="color: #00b9e5;">PowerShell</span>,
-                       <span style="color: #38d430;">Protobuf</span>,
-                       <span style="color: #e3e82b;">Python</span>,
-                       <span style="color: #ffab4d;">Ruby</span>,
-                       <span style="color: #ff3f3f;">Rust</span>,
-                       <span style="color: #ef2bc1;">Scala</span>,
-                       <span style="color: #bc13fe;">SCSS</span>,
-                       <span style="color: #00b9e5;">Shell</span>,
-                       <span style="color: #38d430;">SQL</span>,
-                       <span style="color: #e3e82b;">Swift</span>,
-                       <span style="color: #ffab4d;">TOML</span>,
-                       <span style="color: #ff3f3f;">Typescript</span>,
-                       <span style="color: #ef2bc1;">Wasm</span>,
+                       <span style="color: #e3e82b;">Matlab</span>,
+                       <span style="color: #ffab4d;">Nginx</span>,
+                       <span style="color: #ff3f3f;">Nix</span>,
+                       <span style="color: #ef2bc1;">Objectivec</span>,
+                       <span style="color: #bc13fe;">Odin</span>,
+                       <span style="color: #00b9e5;">Perl</span>,
+                       <span style="color: #38d430;">Pgsql</span>,
+                       <span style="color: #e3e82b;">PHP</span>,
+                       <span style="color: #ffab4d;">Plaintext</span>,
+                       <span style="color: #ff3f3f;">PowerShell</span>,
+                       <span style="color: #ef2bc1;">Protobuf</span>,
+                       <span style="color: #bc13fe;">Python</span>,
+                       <span style="color: #00b9e5;">R</span>,
+                       <span style="color: #38d430;">Ruby</span>,
+                       <span style="color: #e3e82b;">Rust</span>,
+                       <span style="color: #ffab4d;">Scala</span>,
+                       <span style="color: #ff3f3f;">SCSS</span>,
+                       <span style="color: #ef2bc1;">Shell</span>,
+                       <span style="color: #bc13fe;">SQL</span>,
+                       <span style="color: #00b9e5;">Swift</span>,
+                       <span style="color: #38d430;">TOML</span>,
+                       <span style="color: #e3e82b;">Typescript</span>,
+                       <span style="color: #ffab4d;">Vim</span>,
+                       <span style="color: #ff3f3f;">Wasm</span>,
+                       <span style="color: #ef2bc1;">X86asm</span>,
                        <span style="color: #bc13fe;">XML</span>,
                        <span style="color: #00b9e5;">Yaml</span>,
                        <span style="color: #38d430;">Zig</span>
                    </li>
-                    <li><span style="color: #00b9e5;">Fuzzy and AND, OR, NOT search:</span></span> No bm25 sorted relevant results but still relevant results and extremely fast index build  <a href="https://github.com/nextapps-de/flexsearch" target="_blank" style="color: #ef2bc1; text-decoration: none;">flexsearch.js</a></li>
-                    <li><span style="color: #38d430;">Fast and Local:</span></span> All data stored locally in `browser.storage.local` (IndexedDB)</li>
-                    <li><span style="color: #e3e82b;">Hash Cached index in memory:</span></span> Only rebuilds when searching and snippets are added/modified/deleted</li>
+                    <li><span style="color: #00b9e5;">Fuzzy and AND, OR, NOT search:</span> No bm25 sorted relevant results but still relevant results and extremely fast index build  <a href="https://github.com/nextapps-de/flexsearch" target="_blank" style="color: #ef2bc1; text-decoration: none;">flexsearch.js</a></li>
+                    <li><span style="color: #38d430;">Fast and Local:</span> All data stored locally in `browser.storage.local` (IndexedDB)</li>
+                    <li><span style="color: #e3e82b;">Hash Cached index in memory:</span> Only rebuilds when searching and snippets are added/modified/deleted</li>
                     <li><span style="color: #ffab4d;">Prefix search:</span> Finds partial matches</li>
-                    <li><span style="color: #ff3f3f;">Add tags:</span></span> #tags to Title section and use Title filter</li>
-                    <li><span style="color: #ef2bc1;">Notes:</span></span> Add context, examples, or documentation</li>
-                    <li><span style="color: #bc13fe;">Import/Export:</span></span> Backup and share your snippets as JSON, detects duplicates, zip</li>
-                    <li><span style="color: #00b9e5;">Batch Import/Export Workspaces:</span></span> Export all Workspaces, Import Source code (markdown, lua, etc.) in zip</li>
-                    <li><span style="color: #38d430;">CSV:</span></span> View table, cell editing, column sorting, columns/rows copy/delete, delimiters <span style="color: #38d430;">, ; | : tab</span> <a href="http://papaparse.com/" target="_blank" style="color: #ffab4d; text-decoration: none; ">papaparse.com</a></li>
-                    <li><span style="color: #e3e82b;">VTT/SRT support:</span></span> Syntax highlighting for subtitle files</li>
-                    <li><span style="color: #ffab4d;">Auto-detection:</span></span> Language is detected automatically from code</li>
-                    <li><span style="color: #ff3f3f;">Syntax highlighting:</span></span> <a href="https://highlightjs.org/" target="_blank" style="color: #38d430; text-decoration: none; ">highlightjs.org</a> 44 languages with 50+ color themes (ZooCage 2.0)</li>
-                    <li><span style="color: #ef2bc1;">Tile Case:</span></span> people of the web <span style="color: #ffab4d;">--></span><span style="color: #ff3f3f;"> P</span>eople of the <span style="color: #ff3f3f;">W</span>eb</li>
+                    <li><span style="color: #ff3f3f;">Add tags:</span> #tags to Title section and use Title filter</li>
+                    <li><span style="color: #ef2bc1;">Notes:</span> Add context, examples, or documentation</li>
+                    <li><span style="color: #bc13fe;">Import/Export:</span> Backup and share your snippets as JSON, detects duplicates, zip</li>
+                    <li><span style="color: #00b9e5;">Batch Import/Export Workspaces:</span> Export all Workspaces, Import Source code (markdown, lua, etc.) in zip</li>
+                    <li><span style="color: #38d430;">CSV:</span> View table, cell editing, column sorting, columns/rows copy/delete, delimiters <span style="color: #38d430;">, ; | : tab</span> <a href="http://papaparse.com/" target="_blank" style="color: #ffab4d; text-decoration: none; ">papaparse.com</a></li>
+                    <li><span style="color: #e3e82b;">VTT/SRT support:</span> Syntax highlighting for subtitle files</li>
+                    <li><span style="color: #ffab4d;">Auto-detection:</span> Language is detected automatically from code</li>
+                    <li><span style="color: #ff3f3f;">Syntax highlighting:</span> <a href="https://highlightjs.org/" target="_blank" style="color: #38d430; text-decoration: none; ">highlightjs.org</a> 58 languages with 60+ color themes</li>
+                    <li><span style="color: #ef2bc1;">Title Case:</span> people of the web <span style="color: #ffab4d;">--&gt;</span><span style="color: #ff3f3f;"> P</span>eople of the <span style="color: #ff3f3f;">W</span>eb</li>
                 </ul>
             </div>
         </div>
         <div class="editor-container" id="editorContainer">
-            <div class="form-group">
+            <div class="form-group title-group">
                 <label>Title</label>
                 <div class="input-with-clear">
                     <input type="text" id="snippetTitle" placeholder="First line of code">
@@ -165,7 +180,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <div class="code-header-row" style="display: flex; align-items: center; gap: 0.5rem;">
                     <label>Code</label>
                     <button class="clear-btn" id="pasteCode" title="Ctrl+v / ⌘v">Paste</button>
                     <button class="clear-btn" id="clearCode" title="Clear code">Clear</button>
@@ -206,10 +221,6 @@
                         <button class="clear-btn" id="clearNotes" title="Clear notes">Clear</button>
                     </div>
                     <div class="notes-actions">
-                        <div class="dropdown" tabindex="0" id="notesLanguageSelector" style="min-width:120px;">
-                            <div class="selected">Plaintext</div>
-                            <div class="options"></div>
-                        </div>
                         <button class="secondary scroll-btn" id="scrollToTop">↑ Top</button>
                         <button id="saveSnippet2">Save</button>
                         <button class="secondary" id="copyCode2">Copy</button>
@@ -218,6 +229,8 @@
                 </div>
                 <textarea id="snippetNotes" placeholder="Add notes, output examples, or change logs..."></textarea>
             </div>
+        </div>
+    </div>
 </main>
 
 <div id="markdownSettingsModal" style="display: none;">
@@ -268,6 +281,8 @@
 </div>
 
 <script src="highlight.min.js"></script>
+<script src="languages/apache.min.js"></script>
+<script src="languages/armasm.min.js"></script>
 <script src="languages/asciidoc.min.js"></script>
 <script src="languages/awk.min.js"></script>
 <script src="languages/bash.min.js"></script>
@@ -282,23 +297,33 @@
 <script src="languages/elixir.min.js"></script>
 <script src="languages/go.min.js"></script>
 <script src="languages/graphql.min.js"></script>
+<script src="languages/groovy.min.js"></script>
 <script src="languages/haskell.min.js"></script>
+<script src="languages/http.min.js"></script>
 <script src="languages/ini.min.js"></script>
 <script src="languages/java.min.js"></script>
 <script src="languages/javascript.min.js"></script>
 <script src="languages/json.min.js"></script>
+<script src="languages/julia.min.js"></script>
 <script src="languages/kotlin.min.js"></script>
+<script src="languages/latex.min.js"></script>
+<script src="languages/less.min.js"></script>
 <script src="languages/lua.min.js"></script>
 <script src="languages/makefile.min.js"></script>
 <script src="languages/markdown.min.js"></script>
+<script src="languages/matlab.min.js"></script>
+<script src="languages/nginx.min.js"></script>
+<script src="languages/nix.min.js"></script>
 <script src="languages/objectivec.min.js"></script>
 <script src="languages/odin.min.js"></script>
 <script src="languages/perl.min.js"></script>
+<script src="languages/pgsql.min.js"></script>
 <script src="languages/php.min.js"></script>
 <script src="languages/plaintext.min.js"></script>
 <script src="languages/powershell.min.js"></script>
 <script src="languages/protobuf.min.js"></script>
 <script src="languages/python.min.js"></script>
+<script src="languages/r.min.js"></script>
 <script src="languages/ruby.min.js"></script>
 <script src="languages/rust.min.js"></script>
 <script src="languages/scala.min.js"></script>
@@ -307,12 +332,13 @@
 <script src="languages/sql.min.js"></script>
 <script src="languages/swift.min.js"></script>
 <script src="languages/typescript.min.js"></script>
+<script src="languages/vim.min.js"></script>
 <script src="languages/wasm.min.js"></script>
+<script src="languages/x86asm.min.js"></script>
 <script src="languages/xml.min.js"></script>
 <script src="languages/yaml.min.js"></script>
 <script src="languages/zig.min.js"></script>
 <script src="flexsearch.es5.min.js"></script>
-<script src="jszip.min.js"></script>
 <script src="papaparse.min.js"></script>
 <script src="jszip.min.js"></script>
 <script src="diff.min.js"></script>
@@ -343,6 +369,7 @@
         <div style="color:#ff9944; font-size:0.85rem; font-weight:600; margin-bottom:0.5rem;">Light Themes</div>
         <div id="themePickerLight" style="display:flex; flex-direction:column; gap:0.25rem; max-height:300px; overflow-y:auto;"></div>
       </div>
+    </div>
       <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;">
           <input type="checkbox" id="exportNotesCheckbox" checked style="width:16px;height:16px;accent-color:#4ec9b0;cursor:pointer;">
           <label for="exportNotesCheckbox" style="color:#d4d4d4;font-size:0.85rem;cursor:pointer;">Export Notes</label>
@@ -353,7 +380,6 @@
       </div>
     </div>
   </div>
-</div>
 
 </body>
 </html>

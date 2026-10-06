@@ -169,7 +169,7 @@ body.light-mode .dropdown .selected {
     position: absolute;
     width: max-content;
     min-width: 100%;
-    max-height: 200px;
+    max-height: 70vh;
     overflow-y: auto;
     background: #3e3e42;
     border: 1px solid #3e3e42;
@@ -177,6 +177,12 @@ body.light-mode .dropdown .selected {
     margin-top: 2px;
     z-index: 1000;
     right: 0;
+}
+
+#themeSelectorDark .options,
+#themeSelectorLight .options {
+    left: 0;
+    right: auto;
 }
 
 body.light-mode .dropdown .options {
@@ -1529,4 +1535,39 @@ body.sidebar-collapsed .editor-container {
     padding: 0.35rem 0.6rem;
     line-height: 1;
     min-width: auto;
+}
+
+/* Pull the editor up to the top */
+.editor-container {
+    padding-top: 0.25rem;
+}
+body.sidebar-collapsed .editor-container {
+    padding-top: 0.25rem;
+}
+
+/* Title label on the same line as the input */
+.form-group.title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+.form-group.title-group > label {
+    margin: 0;
+    flex: 0 0 auto;
+}
+.form-group.title-group .input-with-clear {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Small gap between the Code/Preview headers and their boxes */
+.code-header-row {
+    margin-bottom: 0.15rem;
+}
+.code-header-row > label {
+    margin: 0;
+}
+.preview-header {
+    margin-bottom: 0.15rem;
 }

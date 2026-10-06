@@ -587,13 +587,14 @@ async function captureHighlightedTerms() {
 
     turndownService.addRule('codeBlocks', {
         filter: function(node) {
-            return node.nodeName === 'PRE' && node.firstChild && node.firstChild.nodeName === 'CODE';
+            return node.nodeName === 'PRE';
         },
         replacement: function(content, node) {
-            const codeNode = node.firstChild;
-            const language = codeNode.className.match(/language-(\w+)/);
-            const lang = language ? language[1] : '';
-            return '\n```' + lang + '\n' + codeNode.textContent + '\n```\n';
+            const text = node.textContent.replace(/\n$/, '');
+            // use a longer fence if the code itself contains ```
+            let fence = '```';
+            while (text.includes(fence)) fence += '`';
+            return '\n' + fence + '\n' + text + '\n' + fence + '\n';
         }
     });
 
@@ -605,14 +606,15 @@ async function captureHighlightedTerms() {
 
     let markdown = turndownService.turndown(article.content);
 
-    markdown = markdown.replace(/(\w+)\s+([a-z])\b/gi, function(match, word, letter) {
-        if (['s', 't', 'd'].includes(letter.toLowerCase())) {
-            return word + letter;
-        }
-        return match;
-    });
-
-    markdown = markdown.replace(/(\w+)\s+'s\b/gi, "$1's");
+    const parts = markdown.split(/(```[\s\S]*?```)/g);
+    markdown = parts.map((part, i) => {
+        if (i % 2 === 1) return part; // fenced code, leave untouched
+        return part
+            .replace(/(\w+)\s+([a-z])\b/gi, function(match, word, letter) {
+                return ['s', 't', 'd'].includes(letter.toLowerCase()) ? word + letter : match;
+            })
+            .replace(/(\w+)\s+'s\b/gi, "$1's");
+    }).join('');
 
     const fixedHighlightedTerms = {};
     Object.entries(highlightData.terms).forEach(([term, color]) => {
