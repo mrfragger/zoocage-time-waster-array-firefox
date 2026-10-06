@@ -41,7 +41,7 @@
             </div>
         </div>
         <div class="controls">
-            <button class="secondary" id="toggleSidebar" title="Toggle search sidebar (Ctrl+\ / ⌘\)">☰</button>
+            <button class="secondary" id="toggleSidebar" title="Toggle search sidebar (Ctrl⌘\)">«</button>
             <div class="select-all-container">
                 <input type="checkbox" id="selectAllCheckbox">
             </div>
@@ -185,7 +185,11 @@
                     <button class="clear-btn" id="pasteCode" title="Ctrl+v / ⌘v">Paste</button>
                     <button class="clear-btn" id="clearCode" title="Clear code">Clear</button>
                     <button class="clear-btn" id="toggleFilePosition" title="Toggle between start and end of file">↓File</button>
-                    <button class="secondary" id="titleCase" title="Title Case (works on selection, click again to undo)">Title Case</button>
+                    <button class="secondary" id="titleCase" title="Titleize (works on selection, click again to undo)">Titleize</button>
+                    <div class="dropdown" tabindex="0" id="transformSelector" title="Transform">
+                        <div class="selected">56</div>
+                        <div class="options"></div>
+                    </div>
                     <button class="secondary" id="viewCsvBtn" style="display: none;">csv</button>
                     <button id="toggleSyncScroll" class="secondary" title="Toggle synchronized scrolling" style="display: none;">Sync</button>
                 </div>

@@ -2012,10 +2012,10 @@ function updateWorkspaceIndicator() {
     const indicator = document.createElement("div");
     indicator.id = "workspaceIndicator";
     indicator.style.cssText =
-      "color: #4ec9b0; font-weight: 600; font-size: 0.9rem; margin-left: 1rem; text-align: right; white-space: nowrap;";
+      "display: flex; gap: 0.6rem; align-items: baseline; color: #4ec9b0; font-weight: 600; font-size: 0.9rem; margin-left: 1rem; white-space: nowrap;";
     indicator.innerHTML = `
-            <a href="?view=workspaces" style="color: #4ec9b0; text-decoration: none;">← Workspaces</a> / ${displayName}
-            <div id="snippetCount" style="color: #858585; font-weight: 400; font-size: 0.85rem; margin-top: 0.25rem;">${snippets.length}/${snippets.length} snippet${snippets.length !== 1 ? "s" : ""}</div>
+            <a href="?view=workspaces" title="Active Workspace" style="color: #4ec9b0; text-decoration: none;">← ${escapeHtml(displayName)}</a>
+            <span id="snippetCount" title="snippets" style="color: #858585; font-weight: 400; font-size: 0.85rem;">${snippets.length}/${snippets.length}</span>
         `;
 
     const headerControls = document.querySelector(
@@ -2038,6 +2038,7 @@ function initApp() {
   });
   setupEventListeners();
   populateLanguageSelect();
+  setupTransformMenu();
   document.getElementById("searchInput").focus();
   updateWorkspaceIndicator();
 
@@ -2092,8 +2093,218 @@ function updateSnippetCount(displayedCount) {
   const countElement = document.getElementById("snippetCount");
   if (countElement) {
     const total = snippets.length;
-    countElement.textContent = `${displayedCount}/${total} snippet${total !== 1 ? "s" : ""}`;
+    countElement.textContent = `${displayedCount}/${total}`;
   }
+}
+
+const cleanDiacritics = (s) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+// integers only: skips the digits inside decimals like 1.5
+const INT_RE = /(?<![\d.])-?\d+(?![\d.])/g;
+const FLOAT_RE = /-?\d+\.\d+/g;
+
+function shiftInt(n, delta) {
+  const neg = n.startsWith("-");
+  const digits = neg ? n.slice(1) : n;
+  const out = Number(n) + delta;
+  if (digits.length < 2 || digits[0] !== "0") return String(out);
+  // preserve leading zeros: 007 -> 008
+  const abs = String(Math.abs(out)).padStart(digits.length, "0");
+  return (out < 0 ? "-" : "") + abs;
+}
+
+const shiftInts = (delta) => (s) => s.replace(INT_RE, (n) => shiftInt(n, delta));
+
+const shiftFloats = (delta) => (s) =>
+  s.replace(FLOAT_RE, (n) => {
+    const places = n.split(".")[1].length;
+    return (Number(n) + delta).toFixed(places);
+  });
+
+const duplicateWith = (fn) => (s) => {
+  const sep = s.endsWith("\n") ? "" : "\n";
+  return s + sep + fn(s);
+};
+
+// Replace each number with start, start+step, start+2*step, …
+// `startStr` is the raw user input; if it looks like "001" the width is preserved.
+const steppedSequence = (start, step, startStr) => (s) => {
+  const width = /^-?0\d+$/.test(startStr || "")
+    ? startStr.replace(/^-/, "").length
+    : 0;
+  const pad = (n) => {
+    const neg = n < 0;
+    const abs = String(Math.abs(n));
+    const padded = width > 0 ? abs.padStart(width, "0") : abs;
+    return (neg ? "-" : "") + padded;
+  };
+  let i = 0;
+  return s.replace(INT_RE, () => pad(start + step * i++));
+};
+
+// Legacy: continue from the first number in the selection (kept for the fixed menu row)
+const sequence = (s) => {
+  let i = null;
+  return s.replace(INT_RE, (n) => {
+    if (i === null) i = Number(n);
+    return String(i++);
+  });
+};
+
+function applyToSelection(fn, label) {
+  const ta = document.getElementById("snippetCode");
+  let start = ta.selectionStart;
+  let end = ta.selectionEnd;
+  if (start === end) {
+    start = 0;
+    end = ta.value.length;
+  }
+  const result = fn(ta.value.slice(start, end));
+
+  ta.focus();
+  ta.setSelectionRange(start, end);
+  // insertText keeps Ctrl+Z working
+  if (!document.execCommand("insertText", false, result)) {
+    ta.setRangeText(result, start, end, "select");
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  ta.setSelectionRange(start, start + result.length);
+  showNotification(label);
+}
+
+const TRANSFORMS = [
+  ["Clean diacritics", cleanDiacritics],
+  ["Increment", shiftInts(1)],
+  ["Decrement", shiftInts(-1)],
+  ["Duplicate and increment", duplicateWith(shiftInts(1))],
+  ["Duplicate and decrement", duplicateWith(shiftInts(-1))],
+  ["Increment float", shiftFloats(1)],
+  ["Decrement float", shiftFloats(-1)],
+  ["Sequence", sequence],
+];
+
+function setupTransformMenu() {
+  const dropdown = document.getElementById("transformSelector");
+  const options = dropdown.querySelector(".options");
+  options.textContent = "";
+
+  TRANSFORMS.forEach(([label, fn]) => {
+    const option = document.createElement("div");
+    option.className = "option";
+    option.textContent = label;
+    option.addEventListener("click", () => applyToSelection(fn, label));
+    options.appendChild(option);
+  });
+
+  // ---- (1) Increment by… : shift every number by the same amount ----
+  const incByOption = document.createElement("div");
+  incByOption.className = "option";
+  incByOption.textContent = "Increment by…";
+  incByOption.addEventListener("click", () => {
+    const input = prompt(
+      "Increment each number by how much?\n\n" +
+        "  •  3  →   1, 2, 3     becomes   4, 5, 6\n" +
+        "  • -5  →  40, 40, 40   becomes  35, 35, 35\n\n" +
+        "Every number is shifted by the same amount.",
+      "1",
+    );
+    if (input === null) return;
+    const step = parseInt(input.trim(), 10);
+    if (isNaN(step) || step === 0) {
+      showNotification("Please enter a non-zero whole number", "error");
+      return;
+    }
+    applyToSelection(shiftInts(step), `Increment by ${step}`);
+  });
+  options.appendChild(incByOption);
+
+  // ---- (2) Sequence from… : consecutive run starting at N ----
+  const seqOption = document.createElement("div");
+  seqOption.className = "option";
+  seqOption.textContent = "Sequence from…";
+  seqOption.addEventListener("click", () => {
+    const input = prompt(
+      "Start the consecutive sequence at which number?\n\n" +
+        "  10  →   1, 2, 3   becomes   10, 11, 12\n" +
+        "  001 →   x, x, x   becomes   001, 002, 003\n\n" +
+        "Numbers are replaced with start, start+1, start+2, …",
+      "1",
+    );
+    if (input === null) return;
+    const trimmed = input.trim();
+    const start = parseInt(trimmed, 10);
+    if (isNaN(start)) {
+      showNotification("Please enter a whole number", "error");
+      return;
+    }
+    const unsigned = trimmed.replace(/^[-+]/, "");
+    const width = /^0\d+$/.test(unsigned) ? unsigned.length : 0;
+    const startStr = width > 0 ? trimmed : String(start);
+    applyToSelection(
+      steppedSequence(start, 1, startStr),
+      `Sequence from ${trimmed}`,
+    );
+  });
+  options.appendChild(seqOption);
+
+  // ---- (3) Sequence from… step… : start, start+step, start+2*step, … ----
+  const seqStepOption = document.createElement("div");
+  seqStepOption.className = "option";
+  seqStepOption.textContent = "Sequence from… step…";
+  seqStepOption.addEventListener("click", () => {
+    const startInput = prompt(
+      "Sequence: start at which number?\n\n" +
+        "  0  →   0, 6, 12, 18, …  (with step 6)\n" +
+        "  6  →   6, 12, 18, 24, … (with step 6)\n\n" +
+        "Tip: type 001 to zero-pad (001, 004, 007, …).",
+      "1",
+    );
+    if (startInput === null) return;
+    const startTrim = startInput.trim();
+    const start = parseInt(startTrim, 10);
+    if (isNaN(start)) {
+      showNotification("Please enter a whole number for the start", "error");
+      return;
+    }
+
+    const stepInput = prompt(
+      "Sequence: step by how much?\n\n" +
+        "   6  →  start, start+6, start+12, …\n" +
+        "  -5  →  start, start-5, start-10, …\n\n" +
+        "Step cannot be 0.",
+      "1",
+    );
+    if (stepInput === null) return;
+    const step = parseInt(stepInput.trim(), 10);
+    if (isNaN(step) || step === 0) {
+      showNotification(
+        "Please enter a non-zero whole number for the step",
+        "error",
+      );
+      return;
+    }
+
+    const unsigned = startTrim.replace(/^[-+]/, "");
+    const width = /^0\d+$/.test(unsigned) ? unsigned.length : 0;
+    const startStr = width > 0 ? startTrim : String(start);
+    applyToSelection(
+      steppedSequence(start, step, startStr),
+      `Sequence from ${startTrim} step ${step}`,
+    );
+  });
+  options.appendChild(seqStepOption);
+
+  // keep the textarea selection when clicking the dropdown
+  dropdown.addEventListener("mousedown", (e) => e.preventDefault());
+  dropdown.addEventListener("click", (e) => {
+    e.stopPropagation();
+    document.querySelectorAll(".dropdown").forEach((d) => {
+      if (d !== dropdown) d.classList.remove("open");
+    });
+    dropdown.classList.toggle("open");
+  });
+  document.addEventListener("click", () => dropdown.classList.remove("open"));
 }
 
 function getStorageKey(type) {
@@ -4723,10 +4934,11 @@ function setSidebarCollapsed(collapsed, save = true) {
   document.body.classList.toggle("sidebar-collapsed", collapsed);
   const btn = document.getElementById("toggleSidebar");
   if (btn) {
-    btn.style.opacity = collapsed ? "0.6" : "1";
+    btn.textContent = collapsed ? "»" : "«";
+    btn.style.opacity = "1";
     btn.title = collapsed
-      ? "Show search sidebar (Ctrl+\\ / ⌘\\)"
-      : "Hide search sidebar (Ctrl+\\ / ⌘\\)";
+      ? "Show search sidebar Ctrl+⌘\\"
+      : "Hide search sidebar Ctrl⌘\\";
   }
   if (save) {
     browser.storage.local.set({ zoocageSidebarCollapsed: collapsed });
@@ -9721,7 +9933,7 @@ function titleCase() {
 
   if (targetElement === codeInput) updatePreview();
 
-  showNotification("Title case applied! (Click again to undo)");
+  showNotification("Titleized (Click again to undo)");
 }
 
 const codeTextarea = document.getElementById("snippetCode");

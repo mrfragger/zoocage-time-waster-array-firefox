@@ -1531,7 +1531,8 @@ body.sidebar-collapsed .editor-container {
 }
 
 #toggleSidebar {
-    font-size: 1.1rem;
+    font-size: 1.3rem;
+    font-weight: 700;
     padding: 0.35rem 0.6rem;
     line-height: 1;
     min-width: auto;
@@ -1570,4 +1571,49 @@ body.sidebar-collapsed .editor-container {
 }
 .preview-header {
     margin-bottom: 0.15rem;
+}
+
+header > div:first-child .dropdown .selected {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    line-height: 1.2;
+}
+header > div:first-child .dropdown {
+    min-width: 0;
+}
+header > div:first-child .dropdown .option {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.75rem;
+}
+
+header > div:first-child > .controls {
+    border-top: none;
+    padding-top: 0;
+}
+
+header {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+header > .controls {
+    padding-top: 4px;
+    border-top: none;
+}
+
+.code-header-row .clear-btn {
+    padding: 0.35rem 0.75rem;
+    min-width: 0;
+    font-size: 0.85rem;
+}
+.code-header-row .dropdown {
+    min-width: 0;
+}
+.code-header-row .dropdown .selected {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    border: none;
+}
+#transformSelector .options {
+    left: 0;
+    right: auto;
 }
