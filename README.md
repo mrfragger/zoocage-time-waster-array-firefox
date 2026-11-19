@@ -8,6 +8,7 @@ https://addons.mozilla.org/en-US/firefox/addon/zoocage-time-waster-array/
 
 
 Here is Chrome version (not gonna pubish on google extension store or whatever it's called)
-I use it for ZigZag [zigzagbrowser.com] even though it's WebKit and works only on Mac.
+Main difference is doesn't have Dark Mode.
+I use it for ZigZag https://zigzagbrowser.com even though it's WebKit and works only on Mac.
 Right click and save as to download and unzip it and choose Install from folder.
 ![zoocagetimewasterarraychrome.zip](zoocagetimewasterarraychrome.zip) 2MB
