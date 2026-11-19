@@ -5,3 +5,9 @@ uses avif image which take 4x as long to encode but usually 2x to 3x smaller in 
 https://addons.mozilla.org/en-US/firefox/addon/zoocage-time-waster-array/
 
 ![](zoocagefirefox.jpg)
+
+
+Here is Chrome version (not gonna pubish on google extension store or whatever it's called)
+I use it for ZigZag [zigzagbrowser.com] even though it's WebKit and works only on Mac.
+2MB ...just download and unzip it and choose Install from folder.
+![zoocagetimewasterarraychrome.zip](zoocagetimewasterarraychrome.zip)
